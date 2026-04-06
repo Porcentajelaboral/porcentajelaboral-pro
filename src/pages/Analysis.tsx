@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Upload, FileText, Briefcase, ArrowRight, Lock } from "lucide-react";
+import { Upload, FileText, Briefcase, ArrowRight, Lock, LinkIcon, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,18 +17,128 @@ const PLAN_LIMITS: Record<string, number> = {
   enterprise: 999999,
 };
 
+async function extractTextFromPdf(file: File): Promise<string> {
+  const pdfjsLib = await import("pdfjs-dist");
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const pages: string[] = [];
+
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const text = content.items
+      .map((item: any) => item.str)
+      .join(" ");
+    pages.push(text);
+  }
+
+  return pages.join("\n\n");
+}
+
 export default function Analysis() {
   const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth();
   const [cvText, setCvText] = useState("");
   const [jobText, setJobText] = useState("");
+  const [jobUrl, setJobUrl] = useState("");
   const [loading, setLoading] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [urlLoading, setUrlLoading] = useState(false);
+  const [pdfFileName, setPdfFileName] = useState<string | null>(null);
+  const [useUrlMode, setUseUrlMode] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const plan = profile?.plan_tipo || "gratis";
   const used = profile?.analisis_usados || 0;
   const limit = PLAN_LIMITS[plan] || 5;
   const remaining = Math.max(0, limit - used);
   const isLimitReached = remaining <= 0 && plan !== "elite" && plan !== "enterprise";
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== "application/pdf") {
+      toast.error("Solo se permiten archivos PDF");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("El archivo no puede superar los 10 MB");
+      return;
+    }
+
+    setPdfLoading(true);
+    try {
+      const text = await extractTextFromPdf(file);
+      if (!text.trim()) {
+        toast.error("No se pudo extraer texto del PDF. Intenta pegar el texto manualmente.");
+        return;
+      }
+      setCvText(text);
+      setPdfFileName(file.name);
+      toast.success("PDF procesado correctamente");
+    } catch (err) {
+      console.error("PDF extraction error:", err);
+      toast.error("Error al procesar el PDF. Intenta pegar el texto manualmente.");
+    } finally {
+      setPdfLoading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleClearPdf = () => {
+    setCvText("");
+    setPdfFileName(null);
+  };
+
+  const handleFetchUrl = async () => {
+    if (!jobUrl.trim()) {
+      toast.error("Ingresa una URL válida");
+      return;
+    }
+
+    setUrlLoading(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) throw new Error("Sesión no válida");
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/scrape-job-url`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ url: jobUrl }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Error al obtener la oferta");
+      }
+
+      if (!result.text?.trim()) {
+        toast.error("No se pudo extraer contenido de la URL. Intenta pegar el texto manualmente.");
+        return;
+      }
+
+      setJobText(result.text);
+      toast.success("Oferta laboral extraída correctamente");
+    } catch (err: any) {
+      console.error("URL fetch error:", err);
+      toast.error(err.message || "Error al obtener la oferta desde la URL");
+    } finally {
+      setUrlLoading(false);
+    }
+  };
 
   const handleAnalyze = async () => {
     if (!user) {
@@ -99,37 +210,115 @@ export default function Analysis() {
       ) : (
         <>
           <div className="grid gap-6 md:grid-cols-2">
+            {/* CV Section */}
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="rounded-xl border bg-card p-6 shadow-card">
               <div className="mb-4 flex items-center gap-2">
                 <FileText className="h-5 w-5 text-accent" />
                 <Label className="font-display text-lg font-semibold">Tu CV</Label>
               </div>
+
+              {pdfFileName && (
+                <div className="mb-3 flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/5 px-3 py-2 text-sm">
+                  <FileText className="h-4 w-4 text-accent" />
+                  <span className="flex-1 truncate text-card-foreground">{pdfFileName}</span>
+                  <button onClick={handleClearPdf} className="text-muted-foreground hover:text-destructive">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+
               <Textarea
                 placeholder="Pega aquí el contenido de tu CV..."
                 className="min-h-[250px] resize-none"
                 value={cvText}
-                onChange={(e) => setCvText(e.target.value)}
+                onChange={(e) => {
+                  setCvText(e.target.value);
+                  if (pdfFileName) setPdfFileName(null);
+                }}
               />
+
               <div className="mt-3 flex items-center gap-2">
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Upload className="h-4 w-4" /> Subir PDF
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  disabled={pdfLoading}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {pdfLoading ? (
+                    <><Loader2 className="h-4 w-4 animate-spin" /> Procesando...</>
+                  ) : (
+                    <><Upload className="h-4 w-4" /> Subir PDF</>
+                  )}
                 </Button>
                 <span className="text-xs text-muted-foreground">o pega el texto directamente</span>
               </div>
             </motion.div>
 
+            {/* Job Section */}
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="rounded-xl border bg-card p-6 shadow-card">
-              <div className="mb-4 flex items-center gap-2">
-                <Briefcase className="h-5 w-5 text-accent" />
-                <Label className="font-display text-lg font-semibold">Oferta Laboral</Label>
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Briefcase className="h-5 w-5 text-accent" />
+                  <Label className="font-display text-lg font-semibold">Oferta Laboral</Label>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1 text-xs"
+                  onClick={() => setUseUrlMode(!useUrlMode)}
+                >
+                  {useUrlMode ? (
+                    <><FileText className="h-3.5 w-3.5" /> Pegar texto</>
+                  ) : (
+                    <><LinkIcon className="h-3.5 w-3.5" /> Usar URL</>
+                  )}
+                </Button>
               </div>
+
+              {useUrlMode && (
+                <div className="mb-3 flex gap-2">
+                  <Input
+                    type="url"
+                    placeholder="https://www.ejemplo.com/oferta-laboral"
+                    value={jobUrl}
+                    onChange={(e) => setJobUrl(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={urlLoading || !jobUrl.trim()}
+                    onClick={handleFetchUrl}
+                    className="gap-1 whitespace-nowrap"
+                  >
+                    {urlLoading ? (
+                      <><Loader2 className="h-4 w-4 animate-spin" /> Cargando</>
+                    ) : (
+                      <>Extraer</>
+                    )}
+                  </Button>
+                </div>
+              )}
+
               <Textarea
                 placeholder="Pega aquí la descripción del trabajo..."
                 className="min-h-[250px] resize-none"
                 value={jobText}
                 onChange={(e) => setJobText(e.target.value)}
               />
-              <p className="mt-3 text-xs text-muted-foreground">Copia la descripción completa del puesto</p>
+              <p className="mt-3 text-xs text-muted-foreground">
+                {useUrlMode
+                  ? "Pega el link de la oferta y haz clic en Extraer, o escribe el texto directamente"
+                  : "Copia la descripción completa del puesto"}
+              </p>
             </motion.div>
           </div>
 

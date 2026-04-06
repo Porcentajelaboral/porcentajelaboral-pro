@@ -17,6 +17,7 @@ import Pricing from "./pages/Pricing";
 import Enterprise from "./pages/Enterprise";
 import Privacy from "./pages/Privacy";
 import MyData from "./pages/MyData";
+import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +43,7 @@ const App = () => (
               <Route path="/empresa" element={<Enterprise />} />
               <Route path="/privacidad" element={<Privacy />} />
               <Route path="/mis-datos" element={<MyData />} />
+              <Route path="/admin" element={<AdminDashboard />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>

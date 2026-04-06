@@ -12,6 +12,7 @@ interface Profile {
   empresa_nombre: string | null;
   cv_en_pool: boolean | null;
   autoriza_contacto: boolean | null;
+  fecha_registro: string | null;
 }
 
 interface AuthContextType {

@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.job-matching]
 verify_jwt = false
+
+[functions.flow-create]
+verify_jwt = false
+
+[functions.flow-webhook]
+verify_jwt = false

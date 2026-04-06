@@ -1,26 +1,33 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Check, Zap, Crown, Building2 } from "lucide-react";
+import { Check, Zap, Crown, Building2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const plans = [
   {
+    key: "gratis",
     name: "Gratis", monthly: 0, icon: Zap, highlight: false,
     features: ["5 análisis por mes", "% básico de compatibilidad", "1 recomendación"],
     cta: "Comenzar gratis",
   },
   {
+    key: "premium",
     name: "Premium", monthly: 4990, icon: Zap, highlight: true,
     features: ["20 análisis por mes", "Análisis completo", "Job matching top 10", "Exportar PDF"],
     cta: "Suscribirse",
   },
   {
+    key: "elite",
     name: "Elite", monthly: 9990, icon: Crown, highlight: false,
     features: ["Análisis ilimitados", "Todo Premium", "Plan de mejora CV", "10 preguntas de entrevista", "Job matching top 20"],
     cta: "Suscribirse",
   },
   {
+    key: "enterprise",
     name: "Enterprise", monthly: 49990, icon: Building2, highlight: false,
     features: ["Todo Elite", "Panel empresa", "Subir ofertas laborales", "Ver candidatos compatibles", "Multi-usuario hasta 5"],
     cta: "Contactar",
@@ -34,6 +41,46 @@ function formatPrice(price: number) {
 
 export default function Pricing() {
   const [annual, setAnnual] = useState(false);
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const { user, profile } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSubscribe = async (planKey: string) => {
+    if (planKey === "gratis") {
+      navigate("/registro");
+      return;
+    }
+
+    if (!user) {
+      navigate("/registro");
+      return;
+    }
+
+    // Already on this plan
+    if (profile?.plan_tipo === planKey) {
+      toast.info("Ya estás suscrito a este plan");
+      return;
+    }
+
+    setLoadingPlan(planKey);
+    try {
+      const { data, error } = await supabase.functions.invoke("flow-create", {
+        body: { plan: planKey },
+      });
+
+      if (error) throw error;
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error("No se recibió URL de pago");
+      }
+    } catch (err: any) {
+      console.error("Error creating payment:", err);
+      toast.error("Error al procesar el pago. Intenta de nuevo.");
+    } finally {
+      setLoadingPlan(null);
+    }
+  };
 
   return (
     <div className="py-16">
@@ -60,6 +107,9 @@ export default function Pricing() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {plans.map((plan, i) => {
             const price = annual ? Math.round(plan.monthly * 12 * 0.67 / 12) : plan.monthly;
+            const isCurrentPlan = user && profile?.plan_tipo === plan.key;
+            const isLoading = loadingPlan === plan.key;
+
             return (
               <motion.div
                 key={plan.name}
@@ -90,14 +140,20 @@ export default function Pricing() {
                     </li>
                   ))}
                 </ul>
-                <Link to="/registro">
+                {isCurrentPlan ? (
+                  <Button className="w-full" variant="outline" disabled>
+                    Plan actual
+                  </Button>
+                ) : (
                   <Button
                     className={`w-full ${plan.highlight ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
                     variant={plan.highlight ? "default" : "outline"}
+                    onClick={() => handleSubscribe(plan.key)}
+                    disabled={isLoading}
                   >
-                    {plan.cta}
+                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : plan.cta}
                   </Button>
-                </Link>
+                )}
               </motion.div>
             );
           })}

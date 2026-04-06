@@ -39,34 +39,31 @@ export default function Analysis() {
 
     setLoading(true);
     try {
-      // Create analysis record (AI processing would happen via edge function)
-      const mockScore = Math.floor(Math.random() * 40) + 55;
-      const nivel = mockScore >= 85 ? "Muy Alto" : mockScore >= 70 ? "Alto" : mockScore >= 50 ? "Medio" : "Bajo";
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) throw new Error("Sesión no válida");
 
-      const { data, error } = await supabase.from("analisis").insert({
-        user_id: user.id,
-        cv_texto: cvText,
-        oferta_texto: jobText,
-        porcentaje: mockScore,
-        nivel,
-        resumen_ejecutivo: `Tu perfil tiene un ${mockScore}% de compatibilidad con esta oferta laboral.`,
-        habilidades_match: "React, TypeScript, Trabajo en equipo, Comunicación",
-        brechas: "Python, Liderazgo de equipos, Cloud computing",
-        recomendaciones: "1. Agrega proyectos específicos\n2. Incluye certificaciones cloud\n3. Destaca logros cuantificables\n4. Mejora sección de habilidades blandas\n5. Agrega idiomas con nivel certificado",
-        keywords_faltan: "Python, AWS, Docker, Kubernetes, CI/CD",
-        preguntas_entrev: "1. ¿Cuéntame sobre un proyecto desafiante?\n2. ¿Cómo manejas conflictos en equipo?\n3. ¿Experiencia con metodologías ágiles?\n4. ¿Cómo priorizas tareas?\n5. ¿Conoces herramientas de CI/CD?\n6. ¿Experiencia con cloud?\n7. ¿Cómo te mantienes actualizado?\n8. ¿Qué te motiva?\n9. ¿Dónde te ves en 5 años?\n10. ¿Por qué esta empresa?",
-        plan_mejora_cv: "Experiencia: Agregar métricas y logros\nHabilidades: Incluir Python y cloud\nEducación: Agregar certificaciones\nIdiomas: Especificar niveles\nProyectos: Destacar trabajo en equipo",
-      }).select("id").single();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-cv`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ cvText, jobText, plan }),
+        }
+      );
 
-      if (error) throw error;
+      const result = await response.json();
 
-      // Update usage count
-      await supabase.from("Perfiles").update({
-        analisis_usados: used + 1,
-      }).eq("user_id", user.id);
+      if (!response.ok) {
+        throw new Error(result.error || "Error al analizar");
+      }
 
       await refreshProfile();
-      navigate(`/resultados?id=${data.id}`);
+      navigate(`/resultados?id=${result.id}`);
     } catch (err: any) {
       toast.error(err.message || "Error al analizar");
     } finally {

@@ -1,14 +1,16 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, X, BarChart3, LogOut } from "lucide-react";
+import { Menu, X, BarChart3, LogOut, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdmin } from "@/hooks/useAdmin";
 
 export function Navbar() {
   const [open, setOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
+  const { isAdmin } = useAdmin();
 
   const publicLinks = [
     { label: "Inicio", path: "/" },
@@ -19,6 +21,7 @@ export function Navbar() {
     { label: "Dashboard", path: profile?.es_empresa ? "/empresa" : "/dashboard" },
     { label: "Análisis", path: "/analisis" },
     { label: "Historial", path: "/historial" },
+    ...(isAdmin ? [{ label: "Admin", path: "/admin" }] : []),
   ];
 
   const navLinks = user ? authLinks : publicLinks;

@@ -89,7 +89,7 @@ export default function Landing() {
                 </Button>
               </Link>
               <Link to="/precios">
-                <Button size="lg" variant="outline" className="border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/10 px-8">
+                <Button size="lg" variant="outline" className="border-primary-foreground/20 text-primary-foreground px-8 bg-accent">
                   Ver planes
                 </Button>
               </Link>

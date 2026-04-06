@@ -78,7 +78,8 @@ Deno.serve(async (req) => {
     }
 
     const planInfo = PLAN_MAP[plan];
-    const commerceOrder = `sub_${userId}_${Date.now()}`;
+    const shortId = userId.replace(/-/g, "").slice(0, 12);
+    const commerceOrder = `sub_${shortId}_${Date.now()}`;
 
     const params: Record<string, string> = {
       apiKey: FLOW_API_KEY,

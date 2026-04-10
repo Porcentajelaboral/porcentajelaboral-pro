@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Layout } from "@/components/Layout";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -34,16 +35,16 @@ const App = () => (
               <Route path="/" element={<Landing />} />
               <Route path="/login" element={<Login />} />
               <Route path="/registro" element={<Register />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/analisis" element={<Analysis />} />
-              <Route path="/resultados" element={<Results />} />
-              <Route path="/historial" element={<History />} />
-              <Route path="/ofertas" element={<JobMatching />} />
               <Route path="/precios" element={<Pricing />} />
-              <Route path="/empresa" element={<Enterprise />} />
               <Route path="/privacidad" element={<Privacy />} />
-              <Route path="/mis-datos" element={<MyData />} />
-              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/analisis" element={<ProtectedRoute><Analysis /></ProtectedRoute>} />
+              <Route path="/resultados" element={<ProtectedRoute><Results /></ProtectedRoute>} />
+              <Route path="/historial" element={<ProtectedRoute><History /></ProtectedRoute>} />
+              <Route path="/ofertas" element={<ProtectedRoute><JobMatching /></ProtectedRoute>} />
+              <Route path="/empresa" element={<ProtectedRoute><Enterprise /></ProtectedRoute>} />
+              <Route path="/mis-datos" element={<ProtectedRoute><MyData /></ProtectedRoute>} />
+              <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>

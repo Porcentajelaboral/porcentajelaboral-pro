@@ -34,7 +34,7 @@ export default function Privacy() {
 
           <div className="space-y-6">
             <LegalSection num={1} title="Responsable del Tratamiento">
-              <p><strong>Porcentaje Laboral</strong> (en adelante, "nosotros" o "el Sitio"), con domicilio en Santiago, Chile y correo de contacto <strong>privacidad@porcentajelaboral.cl</strong>, es el responsable del tratamiento de sus datos personales conforme al artículo 2° de la Ley N° 19.628.</p>
+              <p><strong>Porcentaje Laboral</strong> (en adelante, "nosotros" o "el Sitio"), con domicilio en Santiago, Chile y correo de contacto <strong>contacto@porcentajelaboral.com</strong>, es el responsable del tratamiento de sus datos personales conforme al artículo 2° de la Ley N° 19.628.</p>
             </LegalSection>
 
             <LegalSection num={2} title="Datos que Recopilamos">
@@ -99,7 +99,7 @@ export default function Privacy() {
                   </div>
                 ))}
               </div>
-              <p>Para ejercer sus derechos, contáctenos en <strong>privacidad@porcentajelaboral.cl</strong> indicando su nombre, RUT y el derecho que desea ejercer. Responderemos en máximo <strong>5 días hábiles.</strong></p>
+              <p>Para ejercer sus derechos, contáctenos en <strong>contacto@porcentajelaboral.com</strong> indicando su nombre, RUT y el derecho que desea ejercer. Responderemos en máximo <strong>5 días hábiles.</strong></p>
               <p>Si no está conforme con nuestra respuesta, puede acudir al <strong>Consejo para la Transparencia (CPLT)</strong> o a los Tribunales de Justicia de Chile.</p>
             </LegalSection>
 
@@ -228,7 +228,7 @@ export default function Privacy() {
 
             <LegalSection num={8} title="Privacidad y Protección de Datos">
               <p>El tratamiento de sus datos personales se rige por nuestra <strong>Política de Privacidad</strong>, la cual forma parte integrante de estos Términos y Condiciones. Al aceptar estos Términos, usted también acepta nuestra Política de Privacidad conforme a la Ley N° 19.628.</p>
-              <p>Puede consultar nuestra Política de Privacidad completa en la pestaña correspondiente de esta página o solicitarla a <strong>privacidad@porcentajelaboral.cl</strong>.</p>
+              <p>Puede consultar nuestra Política de Privacidad completa en la pestaña correspondiente de esta página o solicitarla a <strong>contacto@porcentajelaboral.com</strong>.</p>
             </LegalSection>
 
             <LegalSection num={9} title="Modificaciones de los Términos">
@@ -305,7 +305,7 @@ function WarningBox({ children }: { children: React.ReactNode }) {
 function ContactBlock() {
   return (
     <div className="flex flex-wrap gap-3 rounded-lg bg-primary p-4 mt-3 text-sm text-primary-foreground/75">
-      <span>📧 privacidad@porcentajelaboral.cl</span>
+      <span>📧 contacto@porcentajelaboral.com</span>
       <span className="text-primary-foreground/30">|</span>
       <span>📍 Santiago, Chile</span>
     </div>

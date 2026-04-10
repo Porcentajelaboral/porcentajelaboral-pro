@@ -27,7 +27,7 @@ export function Footer() {
             <h4 className="font-semibold mb-3">Legal</h4>
             <div className="flex flex-col gap-2 text-sm text-primary-foreground/70">
               <Link to="/privacidad" className="hover:text-accent transition-colors">Política de Privacidad</Link>
-              <Link to="/privacidad" className="hover:text-accent transition-colors">Términos y Condiciones</Link>
+              <Link to="/terminos" className="hover:text-accent transition-colors">Términos y Condiciones</Link>
               <Link to="/mis-datos" className="hover:text-accent transition-colors">Mis Datos</Link>
             </div>
           </div>

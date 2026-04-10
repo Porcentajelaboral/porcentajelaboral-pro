@@ -1,12 +1,15 @@
 import { Shield, FileText } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useSearchParams } from "react-router-dom";
 
 export default function Privacy() {
   const fecha = "10 de abril de 2026";
+  const [searchParams] = useSearchParams();
+  const defaultTab = searchParams.get("tab") === "terminos" ? "terminos" : "privacidad";
 
   return (
     <div className="container max-w-4xl py-12">
-      <Tabs defaultValue="privacidad" className="w-full">
+      <Tabs defaultValue={defaultTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-8">
           <TabsTrigger value="privacidad" className="flex items-center gap-2">
             <Shield className="h-4 w-4" />

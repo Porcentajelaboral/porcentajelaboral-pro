@@ -65,7 +65,7 @@ export default function Pricing() {
     setLoadingPlan(planKey);
     try {
       const { data, error } = await supabase.functions.invoke("flow-create", {
-        body: { plan: planKey },
+        body: { plan: planKey, billing: annual ? "annual" : "monthly" },
       });
 
       if (error) throw error;
@@ -106,7 +106,7 @@ export default function Pricing() {
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {plans.map((plan, i) => {
-            const price = annual ? Math.round(plan.monthly * 12 * 0.67 / 12) : plan.monthly;
+            const price = annual ? Math.round(plan.monthly * 12 * 0.67) : plan.monthly;
             const isCurrentPlan = user && profile?.plan_tipo === plan.key;
             const isLoading = loadingPlan === plan.key;
 
@@ -131,7 +131,7 @@ export default function Pricing() {
                 <h3 className="font-display text-xl font-bold text-card-foreground">{plan.name}</h3>
                 <div className="my-4">
                   <span className="font-display text-3xl font-bold text-card-foreground">{formatPrice(price)}</span>
-                  <span className="text-sm text-muted-foreground"> CLP/mes</span>
+                  <span className="text-sm text-muted-foreground"> CLP{annual ? "/año" : "/mes"}</span>
                 </div>
                 <ul className="mb-6 space-y-2">
                   {plan.features.map((f) => (

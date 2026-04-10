@@ -72,21 +72,25 @@ Deno.serve(async (req) => {
     const userId = claimsData.claims.sub;
     const userEmail = claimsData.claims.email as string;
 
-    const { plan } = await req.json();
+    const { plan, billing } = await req.json();
     if (!plan || !PLAN_MAP[plan]) {
       return new Response(JSON.stringify({ error: "Plan inválido" }), { status: 400, headers: corsHeaders });
     }
 
     const planInfo = PLAN_MAP[plan];
+    const isAnnual = billing === "annual";
+    const amount = isAnnual ? Math.round(planInfo.amount * 12 * 0.67) : planInfo.amount;
+    const periodLabel = isAnnual ? "Anual" : "Mensual";
+
     const shortId = userId.replace(/-/g, "").slice(0, 12);
     const commerceOrder = `sub_${shortId}_${Date.now()}`;
 
     const params: Record<string, string> = {
       apiKey: FLOW_API_KEY,
       commerceOrder,
-      subject: `Suscripción ${planInfo.name} - PorcentajeLaboral`,
+      subject: `Suscripción ${planInfo.name} ${periodLabel} - PorcentajeLaboral`,
       currency: "CLP",
-      amount: planInfo.amount.toString(),
+      amount: amount.toString(),
       email: userEmail,
       urlConfirmation: `${Deno.env.get("SUPABASE_URL")}/functions/v1/flow-webhook`,
       urlReturn: `${req.headers.get("origin") || "https://porcentajelaboral.com"}/dashboard?payment=success`,
@@ -119,7 +123,7 @@ Deno.serve(async (req) => {
     await adminClient.from("suscripciones").insert({
       user_id: userId,
       plan: plan,
-      monto_clp: planInfo.amount,
+      monto_clp: amount,
       flow_id: commerceOrder,
       activa: false,
       fecha_inicio: new Date().toISOString(),

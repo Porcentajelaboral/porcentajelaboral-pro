@@ -17,6 +17,7 @@ import JobMatching from "./pages/JobMatching";
 import Pricing from "./pages/Pricing";
 import Enterprise from "./pages/Enterprise";
 import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
 import MyData from "./pages/MyData";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
@@ -37,6 +38,7 @@ const App = () => (
               <Route path="/registro" element={<Register />} />
               <Route path="/precios" element={<Pricing />} />
               <Route path="/privacidad" element={<Privacy />} />
+              <Route path="/terminos" element={<Terms />} />
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="/analisis" element={<ProtectedRoute><Analysis /></ProtectedRoute>} />
               <Route path="/resultados" element={<ProtectedRoute><Results /></ProtectedRoute>} />

@@ -65,7 +65,7 @@ export default function Pricing() {
     setLoadingPlan(planKey);
     try {
       const { data, error } = await supabase.functions.invoke("flow-create", {
-        body: { plan: planKey },
+        body: { plan: planKey, billing: annual ? "annual" : "monthly" },
       });
 
       if (error) throw error;

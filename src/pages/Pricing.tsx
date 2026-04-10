@@ -106,7 +106,7 @@ export default function Pricing() {
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {plans.map((plan, i) => {
-            const price = annual ? Math.round(plan.monthly * 12 * 0.67 / 12) : plan.monthly;
+            const price = annual ? Math.round(plan.monthly * 12 * 0.67) : plan.monthly;
             const isCurrentPlan = user && profile?.plan_tipo === plan.key;
             const isLoading = loadingPlan === plan.key;
 

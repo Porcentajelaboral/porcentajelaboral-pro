@@ -60,13 +60,12 @@ export default function Analysis() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.type !== "application/pdf") {
-      toast.error("Solo se permiten archivos PDF");
-      return;
-    }
-
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("El archivo no puede superar los 10 MB");
+    // Validate PDF: MIME type, extension, and size
+    const { validatePdfFile } = await import("@/lib/validation");
+    const validationError = validatePdfFile(file);
+    if (validationError) {
+      toast.error(validationError);
+      if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
 

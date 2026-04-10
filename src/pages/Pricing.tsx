@@ -131,7 +131,7 @@ export default function Pricing() {
                 <h3 className="font-display text-xl font-bold text-card-foreground">{plan.name}</h3>
                 <div className="my-4">
                   <span className="font-display text-3xl font-bold text-card-foreground">{formatPrice(price)}</span>
-                  <span className="text-sm text-muted-foreground"> CLP/mes</span>
+                  <span className="text-sm text-muted-foreground"> CLP{annual ? "/año" : "/mes"}</span>
                 </div>
                 <ul className="mb-6 space-y-2">
                   {plan.features.map((f) => (

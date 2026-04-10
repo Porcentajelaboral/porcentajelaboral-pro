@@ -123,7 +123,7 @@ Deno.serve(async (req) => {
     await adminClient.from("suscripciones").insert({
       user_id: userId,
       plan: plan,
-      monto_clp: planInfo.amount,
+      monto_clp: amount,
       flow_id: commerceOrder,
       activa: false,
       fecha_inicio: new Date().toISOString(),

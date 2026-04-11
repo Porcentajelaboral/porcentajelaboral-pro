@@ -20,6 +20,8 @@ interface UserProfile {
   fecha_registro: string | null;
   cv_en_pool: boolean | null;
   autoriza_contacto: boolean | null;
+  nombre: string | null;
+  email: string | null;
 }
 
 interface AnalisisRecord {
@@ -238,7 +240,8 @@ export default function AdminDashboard() {
                   {profiles.map((p) => (
                     <tr key={p.id} className="border-b last:border-0 hover:bg-muted/30">
                       <td className="p-3">
-                        <div className="font-medium text-card-foreground">{p.user_id.slice(0, 8)}…</div>
+                        <div className="font-medium text-card-foreground">{p.nombre || p.user_id.slice(0, 8) + "…"}</div>
+                        <div className="text-xs text-muted-foreground">{p.email || "Sin email"}</div>
                         {p.empresa_nombre && <div className="text-xs text-muted-foreground">{p.empresa_nombre}</div>}
                       </td>
                       <td className="p-3">

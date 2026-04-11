@@ -54,6 +54,8 @@ export default function Register() {
           autoriza_contacto: acceptAlerts,
           analisis_usados: 0,
           mes_control: new Date().getMonth() + 1,
+          nombre: name,
+          email: email,
         });
 
         if (profileError) throw profileError;

@@ -149,12 +149,14 @@ export type Database = {
           analisis_usados: number | null
           autoriza_contacto: boolean | null
           cv_en_pool: boolean | null
+          email: string | null
           empresa_nombre: string | null
           empresa_rut: string | null
           es_empresa: boolean | null
           fecha_registro: string | null
           id: string
           mes_control: number | null
+          nombre: string | null
           plan_tipo: string | null
           user_id: string
         }
@@ -164,12 +166,14 @@ export type Database = {
           analisis_usados?: number | null
           autoriza_contacto?: boolean | null
           cv_en_pool?: boolean | null
+          email?: string | null
           empresa_nombre?: string | null
           empresa_rut?: string | null
           es_empresa?: boolean | null
           fecha_registro?: string | null
           id?: string
           mes_control?: number | null
+          nombre?: string | null
           plan_tipo?: string | null
           user_id?: string
         }
@@ -179,12 +183,14 @@ export type Database = {
           analisis_usados?: number | null
           autoriza_contacto?: boolean | null
           cv_en_pool?: boolean | null
+          email?: string | null
           empresa_nombre?: string | null
           empresa_rut?: string | null
           es_empresa?: boolean | null
           fecha_registro?: string | null
           id?: string
           mes_control?: number | null
+          nombre?: string | null
           plan_tipo?: string | null
           user_id?: string
         }

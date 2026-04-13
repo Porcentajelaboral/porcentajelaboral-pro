@@ -86,21 +86,38 @@ function NivelBadge({ nivel }: { nivel: string }) {
 export default function Results() {
   const [searchParams] = useSearchParams();
   const analysisId = searchParams.get("id");
+  const previewPlan = searchParams.get("preview_plan");
   const { profile } = useAuth();
   const [data, setData] = useState<AnalysisData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const plan = profile?.plan_tipo || "gratis";
+  const plan = previewPlan || profile?.plan_tipo || "gratis";
   const isPremiumPlus = ["premium", "elite", "enterprise"].includes(plan);
   const isElitePlus = ["elite", "enterprise"].includes(plan);
 
   useEffect(() => {
+    if (previewPlan && !analysisId) {
+      // Demo data for admin plan preview
+      setData({
+        porcentaje: 78,
+        nivel: "Alto",
+        resumen_ejecutivo: "Este es un ejemplo de vista previa del plan " + previewPlan.charAt(0).toUpperCase() + previewPlan.slice(1) + ". El candidato muestra un alto nivel de compatibilidad con la oferta laboral.",
+        habilidades_match: "React, TypeScript, Node.js, SQL, Git",
+        brechas: "Docker, Kubernetes, CI/CD",
+        recomendaciones: "Agregar experiencia con contenedores\nObtener certificación cloud\nMejorar sección de logros cuantificables",
+        keywords_faltan: "microservicios, agile, scrum",
+        preguntas_entrev: "¿Cómo manejas la priorización de tareas?\n¿Cuál fue tu mayor desafío técnico?\n¿Cómo trabajas en equipo remoto?\n¿Qué metodologías ágiles conoces?\n¿Cómo te mantienes actualizado?",
+        plan_mejora_cv: "Agregar sección de proyectos destacados\nCuantificar logros con métricas\nIncluir certificaciones relevantes\nMejorar el resumen profesional",
+      });
+      setLoading(false);
+      return;
+    }
     if (!analysisId) { setLoading(false); return; }
     supabase.from("analisis").select("*").eq("id", analysisId).single().then(({ data: d }) => {
       setData(d);
       setLoading(false);
     });
-  }, [analysisId]);
+  }, [analysisId, previewPlan]);
 
   if (loading) return <div className="container py-20 text-center text-muted-foreground">Cargando resultados...</div>;
   if (!data) return <div className="container py-20 text-center text-muted-foreground">No se encontró el análisis.</div>;
@@ -114,8 +131,13 @@ export default function Results() {
 
   return (
     <div className="container max-w-3xl py-8">
-      <Link to="/analisis" className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-accent">
-        <ArrowLeft className="h-4 w-4" /> Volver al análisis
+      {previewPlan && (
+        <div className="mb-4 rounded-lg border border-accent/30 bg-accent/10 p-3 text-center text-sm font-medium text-accent">
+          👁️ Vista previa: Plan {previewPlan.charAt(0).toUpperCase() + previewPlan.slice(1)} — <Link to="/admin" className="underline">Volver al panel</Link>
+        </div>
+      )}
+      <Link to={previewPlan ? "/admin" : "/analisis"} className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-accent">
+        <ArrowLeft className="h-4 w-4" /> {previewPlan ? "Volver al panel" : "Volver al análisis"}
       </Link>
 
       {/* Score - Always visible */}

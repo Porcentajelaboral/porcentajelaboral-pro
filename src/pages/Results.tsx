@@ -132,12 +132,16 @@ export default function Results() {
   return (
     <div className="container max-w-3xl py-8">
       {previewPlan && (
-        <div className="mb-4 rounded-lg border border-accent/30 bg-accent/10 p-3 text-center text-sm font-medium text-accent">
+        <div className="mb-4 rounded-lg border border-accent/30 bg-accent/10 p-3 text-center text-sm font-medium text-accent flex items-center justify-center gap-2">
           👁️ Vista previa: Plan {previewPlan.charAt(0).toUpperCase() + previewPlan.slice(1)} — <Link to="/admin" className="underline">Volver al panel</Link>
+          {" | "}
+          <Link to={`/dashboard?preview_plan=${previewPlan}`} className="underline">Dashboard</Link>
+          {" | "}
+          <Link to={`/analisis?preview_plan=${previewPlan}`} className="underline">Análisis</Link>
         </div>
       )}
-      <Link to={previewPlan ? "/admin" : "/analisis"} className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-accent">
-        <ArrowLeft className="h-4 w-4" /> {previewPlan ? "Volver al panel" : "Volver al análisis"}
+      <Link to={previewPlan ? `/dashboard?preview_plan=${previewPlan}` : "/analisis"} className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-accent">
+        <ArrowLeft className="h-4 w-4" /> {previewPlan ? "Volver al dashboard" : "Volver al análisis"}
       </Link>
 
       {/* Score - Always visible */}

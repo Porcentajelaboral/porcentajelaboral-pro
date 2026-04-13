@@ -92,16 +92,14 @@ export default function History() {
         ) : (
           <div className="divide-y">
             {analyses.map((a) => {
-              const sourceInfo = a.fuente_oferta ? SOURCE_CONFIG[a.fuente_oferta] || SOURCE_CONFIG.otro : null;
+              const sourceKey = a.fuente_oferta || null;
               const title = a.oferta_titulo || a.oferta_texto?.substring(0, 80) || "Análisis";
 
               return (
                 <motion.div key={a.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-3 p-4 sm:p-5">
                   {/* Source icon */}
-                  {sourceInfo ? (
-                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${sourceInfo.color}`}>
-                      {sourceInfo.icon === "🔗" ? <Globe className="h-4 w-4" /> : sourceInfo.icon}
-                    </div>
+                  {sourceKey ? (
+                    <SourceBadge sourceKey={sourceKey} size="md" />
                   ) : (
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                       <Building2 className="h-4 w-4" />

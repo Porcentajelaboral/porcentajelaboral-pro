@@ -126,7 +126,7 @@ export default function Results() {
   const cvPlan = data.plan_mejora_cv?.split("\n").filter(Boolean) || [];
 
   const hasJobMeta = data.oferta_url || data.oferta_titulo;
-  const sourceInfo = data.fuente_oferta ? SOURCE_CONFIG[data.fuente_oferta] || SOURCE_CONFIG.otro : null;
+  const sourceInfo = data.fuente_oferta ? JOB_SOURCES[data.fuente_oferta] || JOB_SOURCES.otro : null;
 
   return (
     <div className="container max-w-3xl py-8">
@@ -147,10 +147,8 @@ export default function Results() {
       {hasJobMeta && (
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 rounded-xl border bg-card p-5 shadow-card">
           <div className="flex items-start gap-4">
-            {sourceInfo && (
-              <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${sourceInfo.color}`}>
-                {sourceInfo.icon === "🔗" ? <Globe className="h-5 w-5" /> : sourceInfo.icon}
-              </div>
+            {data.fuente_oferta && (
+              <SourceBadge sourceKey={data.fuente_oferta} size="lg" />
             )}
             <div className="flex-1 min-w-0">
               <h2 className="font-display text-lg font-bold text-card-foreground line-clamp-2">

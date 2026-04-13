@@ -259,7 +259,7 @@ export default function Analysis() {
     }
   };
 
-  const sourceInfo = detectedSource ? SOURCE_CONFIG[detectedSource] : null;
+  const sourceInfo = detectedSource ? JOB_SOURCES[detectedSource] : null;
 
   // CV Section (shared between both modes)
   const cvSection = (
@@ -429,9 +429,9 @@ export default function Analysis() {
                       onChange={(e) => setJobUrl(e.target.value)}
                       className={`pr-12 ${urlError ? "border-destructive" : ""}`}
                     />
-                    {sourceInfo && (
-                      <div className={`absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-bold ${sourceInfo.color}`}>
-                        {sourceInfo.icon === "🔗" ? <Globe className="h-3 w-3" /> : sourceInfo.icon}
+                    {detectedSource && (
+                      <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                        <SourceBadge sourceKey={detectedSource} size="sm" />
                       </div>
                     )}
                   </div>
@@ -440,17 +440,15 @@ export default function Analysis() {
                     <p className="text-xs text-destructive">{urlError}</p>
                   )}
 
-                  {sourceInfo && !urlError && (
+                  {detectedSource && !urlError && (
                     <motion.div
                       initial={{ opacity: 0, y: -5 }}
                       animate={{ opacity: 1, y: 0 }}
                       className="flex items-center gap-2 rounded-lg border bg-muted/50 px-3 py-2"
                     >
-                      <div className={`flex items-center justify-center rounded-md px-2 py-0.5 text-xs font-bold ${sourceInfo.color}`}>
-                        {sourceInfo.icon === "🔗" ? <Globe className="h-3 w-3" /> : sourceInfo.icon}
-                      </div>
+                      <SourceBadge sourceKey={detectedSource} size="sm" />
                       <span className="text-sm text-muted-foreground">
-                        Detectado: <strong className="text-card-foreground">{sourceInfo.label}</strong>
+                        Detectado: <strong className="text-card-foreground">{sourceInfo?.label}</strong>
                       </span>
                     </motion.div>
                   )}

@@ -19,11 +19,18 @@ export type Database = {
           brechas: string | null
           cv_texto: string | null
           fecha: string | null
+          fuente_oferta: string | null
           habilidades_match: string | null
           id: string
           keywords_faltan: string | null
           nivel: string | null
+          oferta_empresa: string | null
+          oferta_modalidad: string | null
+          oferta_salario: string | null
           oferta_texto: string | null
+          oferta_titulo: string | null
+          oferta_ubicacion: string | null
+          oferta_url: string | null
           plan_mejora_cv: string | null
           porcentaje: number | null
           preguntas_entrev: string | null
@@ -36,11 +43,18 @@ export type Database = {
           brechas?: string | null
           cv_texto?: string | null
           fecha?: string | null
+          fuente_oferta?: string | null
           habilidades_match?: string | null
           id?: string
           keywords_faltan?: string | null
           nivel?: string | null
+          oferta_empresa?: string | null
+          oferta_modalidad?: string | null
+          oferta_salario?: string | null
           oferta_texto?: string | null
+          oferta_titulo?: string | null
+          oferta_ubicacion?: string | null
+          oferta_url?: string | null
           plan_mejora_cv?: string | null
           porcentaje?: number | null
           preguntas_entrev?: string | null
@@ -53,11 +67,18 @@ export type Database = {
           brechas?: string | null
           cv_texto?: string | null
           fecha?: string | null
+          fuente_oferta?: string | null
           habilidades_match?: string | null
           id?: string
           keywords_faltan?: string | null
           nivel?: string | null
+          oferta_empresa?: string | null
+          oferta_modalidad?: string | null
+          oferta_salario?: string | null
           oferta_texto?: string | null
+          oferta_titulo?: string | null
+          oferta_ubicacion?: string | null
+          oferta_url?: string | null
           plan_mejora_cv?: string | null
           porcentaje?: number | null
           preguntas_entrev?: string | null

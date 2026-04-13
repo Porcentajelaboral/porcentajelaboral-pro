@@ -87,6 +87,11 @@ export default function Login() {
             <Button type="submit" className="w-full bg-accent text-accent-foreground hover:bg-accent/90" disabled={loading}>
               {loading ? "Ingresando..." : "Iniciar Sesión"}
             </Button>
+            <div className="text-right">
+              <Link to="/recuperar-password" className="text-xs text-accent hover:underline">
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </div>
           </form>
           <div className="mt-4 text-center text-sm text-muted-foreground">
             ¿No tienes cuenta?{" "}

@@ -38,7 +38,7 @@ serve(async (req) => {
       });
     }
 
-    const { cvText, jobText, plan } = await req.json();
+    const { cvText, jobText, plan, ofertaMeta } = await req.json();
     if (!cvText || !jobText) {
       return new Response(JSON.stringify({ error: "CV and job description are required" }), {
         status: 400,
@@ -122,7 +122,7 @@ No incluyas markdown, backticks ni texto adicional. Solo el JSON.`;
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { data, error: dbError } = await supabaseAdmin.from("analisis").insert({
+    const insertData: any = {
       user_id: user.id,
       cv_texto: cvText,
       oferta_texto: jobText,
@@ -135,7 +135,21 @@ No incluyas markdown, backticks ni texto adicional. Solo el JSON.`;
       keywords_faltan: (analysis.keywords_faltantes || []).join(", "),
       preguntas_entrev: (analysis.preguntas_entrevista || []).join("\n"),
       plan_mejora_cv: planMejora,
-    }).select("id").single();
+    };
+
+    // Add job offer metadata if provided (from URL scraping)
+    if (ofertaMeta) {
+      insertData.oferta_url = ofertaMeta.url || null;
+      insertData.oferta_titulo = ofertaMeta.titulo || null;
+      insertData.oferta_empresa = ofertaMeta.empresa || null;
+      insertData.oferta_ubicacion = ofertaMeta.ubicacion || null;
+      insertData.oferta_modalidad = ofertaMeta.modalidad || null;
+      insertData.oferta_salario = ofertaMeta.salario || null;
+      insertData.fuente_oferta = ofertaMeta.fuente || null;
+    }
+
+    const { data, error: dbError } = await supabaseAdmin.from("analisis")
+      .insert(insertData).select("id").single();
 
     if (dbError) throw dbError;
 

@@ -37,29 +37,20 @@ export default function Register() {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { full_name: name } },
+        options: {
+          data: {
+            full_name: name,
+            es_empresa: userType === "empresa",
+            empresa_nombre: userType === "empresa" ? empresaNombre : null,
+            acepta_terminos: acceptTerms,
+            acepta_privacidad: acceptPrivacy,
+            cv_en_pool: acceptPool,
+            autoriza_contacto: acceptAlerts,
+          },
+        },
       });
 
       if (error) throw error;
-
-      if (data.user) {
-        const { error: profileError } = await supabase.from("Perfiles").insert({
-          user_id: data.user.id,
-          plan_tipo: "gratis",
-          es_empresa: userType === "empresa",
-          empresa_nombre: userType === "empresa" ? empresaNombre : null,
-          acepta_terminos: acceptTerms,
-          acepta_privacidad: acceptPrivacy,
-          cv_en_pool: acceptPool,
-          autoriza_contacto: acceptAlerts,
-          analisis_usados: 0,
-          mes_control: new Date().getMonth() + 1,
-          nombre: name,
-          email: email,
-        });
-
-        if (profileError) throw profileError;
-      }
 
       toast.success("¡Cuenta creada exitosamente! Revisa tu email para confirmar.");
       navigate("/dashboard");

@@ -1,21 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Clock, Filter, ChevronLeft, ChevronRight, ExternalLink, Globe, Building2 } from "lucide-react";
+import { Clock, Filter, ChevronLeft, ChevronRight, ExternalLink, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-
-const SOURCE_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
-  linkedin: { label: "LinkedIn", color: "bg-[#0A66C2] text-white", icon: "in" },
-  indeed: { label: "Indeed", color: "bg-[#2164F3] text-white", icon: "iD" },
-  trabajando: { label: "Trabajando", color: "bg-[#FF6B00] text-white", icon: "Tr" },
-  computrabajo: { label: "CompuTrabajo", color: "bg-[#1B9B4B] text-white", icon: "CT" },
-  laborum: { label: "Laborum", color: "bg-[#E31937] text-white", icon: "La" },
-  chiletrabajos: { label: "ChileTrabajos", color: "bg-[#003DA5] text-white", icon: "Ch" },
-  bne: { label: "BNE", color: "bg-[#003DA5] text-white", icon: "BN" },
-  otro: { label: "Otro", color: "bg-muted text-muted-foreground", icon: "🔗" },
-};
+import { JOB_SOURCES, SourceBadge } from "@/components/JobSourceBadge";
 
 interface Analysis {
   id: string;

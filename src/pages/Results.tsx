@@ -1,22 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { CheckCircle, XCircle, AlertTriangle, ArrowLeft, Download, Lightbulb, Lock, HelpCircle, FileEdit, ExternalLink, Copy, MapPin, Building2, Monitor, DollarSign, Globe } from "lucide-react";
+import { CheckCircle, XCircle, AlertTriangle, ArrowLeft, Download, Lightbulb, Lock, HelpCircle, FileEdit, ExternalLink, Copy, MapPin, Building2, Monitor, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
-const SOURCE_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
-  linkedin: { label: "LinkedIn", color: "bg-[#0A66C2] text-white", icon: "in" },
-  indeed: { label: "Indeed", color: "bg-[#2164F3] text-white", icon: "iD" },
-  trabajando: { label: "Trabajando.com", color: "bg-[#FF6B00] text-white", icon: "Tr" },
-  computrabajo: { label: "CompuTrabajo", color: "bg-[#1B9B4B] text-white", icon: "CT" },
-  laborum: { label: "Laborum", color: "bg-[#E31937] text-white", icon: "La" },
-  chiletrabajos: { label: "ChileTrabajos", color: "bg-[#003DA5] text-white", icon: "Ch" },
-  bne: { label: "BNE", color: "bg-[#003DA5] text-white", icon: "BN" },
-  otro: { label: "Portal de empleo", color: "bg-muted text-muted-foreground", icon: "🔗" },
-};
+import { JOB_SOURCES, SourceBadge } from "@/components/JobSourceBadge";
 
 interface AnalysisData {
   porcentaje: number | null;

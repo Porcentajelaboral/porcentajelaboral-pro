@@ -458,11 +458,17 @@ export default function Analysis() {
                     <p className="text-sm text-muted-foreground">
                       Pega el link directo de la oferta laboral y nosotros extraemos toda la información automáticamente
                     </p>
-                    <div className="mt-2 flex flex-wrap justify-center gap-1.5">
-                      {["LinkedIn", "Indeed", "Trabajando", "CompuTrabajo"].map((s) => (
-                        <span key={s} className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">{s}</span>
-                      ))}
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">y más...</span>
+                    <div className="mt-3 flex flex-wrap justify-center gap-2">
+                      {["linkedin", "indeed", "trabajando", "computrabajo", "getonbrd"].map((key) => {
+                        const s = JOB_SOURCES[key];
+                        return (
+                          <div key={key} className="flex items-center gap-1 rounded-full px-2 py-0.5" style={{ backgroundColor: s.bg + "15" }}>
+                            <SourceBadge sourceKey={key} size="sm" />
+                            <span className="text-[10px] font-medium" style={{ color: s.bg }}>{s.label}</span>
+                          </div>
+                        );
+                      })}
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground flex items-center">y más...</span>
                     </div>
                   </div>
                 </div>

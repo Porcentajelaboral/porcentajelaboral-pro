@@ -1,22 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { CheckCircle, XCircle, AlertTriangle, ArrowLeft, Download, Lightbulb, Lock, HelpCircle, FileEdit, ExternalLink, Copy, MapPin, Building2, Monitor, DollarSign, Globe } from "lucide-react";
+import { CheckCircle, XCircle, AlertTriangle, ArrowLeft, Download, Lightbulb, Lock, HelpCircle, FileEdit, ExternalLink, Copy, MapPin, Building2, Monitor, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
-const SOURCE_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
-  linkedin: { label: "LinkedIn", color: "bg-[#0A66C2] text-white", icon: "in" },
-  indeed: { label: "Indeed", color: "bg-[#2164F3] text-white", icon: "iD" },
-  trabajando: { label: "Trabajando.com", color: "bg-[#FF6B00] text-white", icon: "Tr" },
-  computrabajo: { label: "CompuTrabajo", color: "bg-[#1B9B4B] text-white", icon: "CT" },
-  laborum: { label: "Laborum", color: "bg-[#E31937] text-white", icon: "La" },
-  chiletrabajos: { label: "ChileTrabajos", color: "bg-[#003DA5] text-white", icon: "Ch" },
-  bne: { label: "BNE", color: "bg-[#003DA5] text-white", icon: "BN" },
-  otro: { label: "Portal de empleo", color: "bg-muted text-muted-foreground", icon: "🔗" },
-};
+import { JOB_SOURCES, SourceBadge } from "@/components/JobSourceBadge";
 
 interface AnalysisData {
   porcentaje: number | null;
@@ -136,7 +126,7 @@ export default function Results() {
   const cvPlan = data.plan_mejora_cv?.split("\n").filter(Boolean) || [];
 
   const hasJobMeta = data.oferta_url || data.oferta_titulo;
-  const sourceInfo = data.fuente_oferta ? SOURCE_CONFIG[data.fuente_oferta] || SOURCE_CONFIG.otro : null;
+  const sourceInfo = data.fuente_oferta ? JOB_SOURCES[data.fuente_oferta] || JOB_SOURCES.otro : null;
 
   return (
     <div className="container max-w-3xl py-8">
@@ -157,10 +147,8 @@ export default function Results() {
       {hasJobMeta && (
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 rounded-xl border bg-card p-5 shadow-card">
           <div className="flex items-start gap-4">
-            {sourceInfo && (
-              <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${sourceInfo.color}`}>
-                {sourceInfo.icon === "🔗" ? <Globe className="h-5 w-5" /> : sourceInfo.icon}
-              </div>
+            {data.fuente_oferta && (
+              <SourceBadge sourceKey={data.fuente_oferta} size="lg" />
             )}
             <div className="flex-1 min-w-0">
               <h2 className="font-display text-lg font-bold text-card-foreground line-clamp-2">

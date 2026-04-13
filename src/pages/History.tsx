@@ -1,21 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Clock, Filter, ChevronLeft, ChevronRight, ExternalLink, Globe, Building2 } from "lucide-react";
+import { Clock, Filter, ChevronLeft, ChevronRight, ExternalLink, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-
-const SOURCE_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
-  linkedin: { label: "LinkedIn", color: "bg-[#0A66C2] text-white", icon: "in" },
-  indeed: { label: "Indeed", color: "bg-[#2164F3] text-white", icon: "iD" },
-  trabajando: { label: "Trabajando", color: "bg-[#FF6B00] text-white", icon: "Tr" },
-  computrabajo: { label: "CompuTrabajo", color: "bg-[#1B9B4B] text-white", icon: "CT" },
-  laborum: { label: "Laborum", color: "bg-[#E31937] text-white", icon: "La" },
-  chiletrabajos: { label: "ChileTrabajos", color: "bg-[#003DA5] text-white", icon: "Ch" },
-  bne: { label: "BNE", color: "bg-[#003DA5] text-white", icon: "BN" },
-  otro: { label: "Otro", color: "bg-muted text-muted-foreground", icon: "🔗" },
-};
+import { JOB_SOURCES, SourceBadge } from "@/components/JobSourceBadge";
 
 interface Analysis {
   id: string;
@@ -102,16 +92,14 @@ export default function History() {
         ) : (
           <div className="divide-y">
             {analyses.map((a) => {
-              const sourceInfo = a.fuente_oferta ? SOURCE_CONFIG[a.fuente_oferta] || SOURCE_CONFIG.otro : null;
+              const sourceKey = a.fuente_oferta || null;
               const title = a.oferta_titulo || a.oferta_texto?.substring(0, 80) || "Análisis";
 
               return (
                 <motion.div key={a.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-3 p-4 sm:p-5">
                   {/* Source icon */}
-                  {sourceInfo ? (
-                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${sourceInfo.color}`}>
-                      {sourceInfo.icon === "🔗" ? <Globe className="h-4 w-4" /> : sourceInfo.icon}
-                    </div>
+                  {sourceKey ? (
+                    <SourceBadge sourceKey={sourceKey} size="md" />
                   ) : (
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                       <Building2 className="h-4 w-4" />

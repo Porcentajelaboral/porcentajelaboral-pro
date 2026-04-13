@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
-import { Upload, FileText, Briefcase, ArrowRight, Lock, LinkIcon, Loader2, X, Eye, ExternalLink, Globe } from "lucide-react";
+import { Upload, FileText, Briefcase, ArrowRight, Lock, LinkIcon, Loader2, X, Eye, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { JOB_SOURCES, detectSourceFromUrl, isValidUrl, SourceBadge } from "@/components/JobSourceBadge";
 
 const PLAN_LIMITS: Record<string, number> = {
   gratis: 5,
@@ -17,40 +18,6 @@ const PLAN_LIMITS: Record<string, number> = {
   elite: 999999,
   enterprise: 999999,
 };
-
-const SOURCE_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
-  linkedin: { label: "LinkedIn", color: "bg-[#0A66C2] text-white", icon: "in" },
-  indeed: { label: "Indeed", color: "bg-[#2164F3] text-white", icon: "iD" },
-  trabajando: { label: "Trabajando.com", color: "bg-[#FF6B00] text-white", icon: "Tr" },
-  computrabajo: { label: "CompuTrabajo", color: "bg-[#1B9B4B] text-white", icon: "CT" },
-  laborum: { label: "Laborum", color: "bg-[#E31937] text-white", icon: "La" },
-  chiletrabajos: { label: "ChileTrabajos", color: "bg-[#003DA5] text-white", icon: "Ch" },
-  bne: { label: "BNE", color: "bg-[#003DA5] text-white", icon: "BN" },
-  otro: { label: "Portal de empleo", color: "bg-muted text-muted-foreground", icon: "🔗" },
-};
-
-function detectSourceFromUrl(url: string): string {
-  try {
-    const hostname = new URL(url).hostname.toLowerCase();
-    if (hostname.includes("linkedin")) return "linkedin";
-    if (hostname.includes("indeed")) return "indeed";
-    if (hostname.includes("trabajando")) return "trabajando";
-    if (hostname.includes("computrabajo")) return "computrabajo";
-    if (hostname.includes("laborum")) return "laborum";
-    if (hostname.includes("chiletrabajos")) return "chiletrabajos";
-    if (hostname.includes("bne") || hostname.includes("bolsanacionalempleo")) return "bne";
-  } catch {}
-  return "otro";
-}
-
-function isValidUrl(str: string): boolean {
-  try {
-    const u = new URL(str);
-    return ["http:", "https:"].includes(u.protocol);
-  } catch {
-    return false;
-  }
-}
 
 const LOADER_MESSAGES = [
   "Extrayendo información de la oferta...",
@@ -292,7 +259,7 @@ export default function Analysis() {
     }
   };
 
-  const sourceInfo = detectedSource ? SOURCE_CONFIG[detectedSource] : null;
+  const sourceInfo = detectedSource ? JOB_SOURCES[detectedSource] : null;
 
   // CV Section (shared between both modes)
   const cvSection = (
@@ -462,9 +429,9 @@ export default function Analysis() {
                       onChange={(e) => setJobUrl(e.target.value)}
                       className={`pr-12 ${urlError ? "border-destructive" : ""}`}
                     />
-                    {sourceInfo && (
-                      <div className={`absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-bold ${sourceInfo.color}`}>
-                        {sourceInfo.icon === "🔗" ? <Globe className="h-3 w-3" /> : sourceInfo.icon}
+                    {detectedSource && (
+                      <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                        <SourceBadge sourceKey={detectedSource} size="sm" />
                       </div>
                     )}
                   </div>
@@ -473,17 +440,15 @@ export default function Analysis() {
                     <p className="text-xs text-destructive">{urlError}</p>
                   )}
 
-                  {sourceInfo && !urlError && (
+                  {detectedSource && !urlError && (
                     <motion.div
                       initial={{ opacity: 0, y: -5 }}
                       animate={{ opacity: 1, y: 0 }}
                       className="flex items-center gap-2 rounded-lg border bg-muted/50 px-3 py-2"
                     >
-                      <div className={`flex items-center justify-center rounded-md px-2 py-0.5 text-xs font-bold ${sourceInfo.color}`}>
-                        {sourceInfo.icon === "🔗" ? <Globe className="h-3 w-3" /> : sourceInfo.icon}
-                      </div>
+                      <SourceBadge sourceKey={detectedSource} size="sm" />
                       <span className="text-sm text-muted-foreground">
-                        Detectado: <strong className="text-card-foreground">{sourceInfo.label}</strong>
+                        Detectado: <strong className="text-card-foreground">{sourceInfo?.label}</strong>
                       </span>
                     </motion.div>
                   )}
@@ -493,11 +458,17 @@ export default function Analysis() {
                     <p className="text-sm text-muted-foreground">
                       Pega el link directo de la oferta laboral y nosotros extraemos toda la información automáticamente
                     </p>
-                    <div className="mt-2 flex flex-wrap justify-center gap-1.5">
-                      {["LinkedIn", "Indeed", "Trabajando", "CompuTrabajo"].map((s) => (
-                        <span key={s} className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">{s}</span>
-                      ))}
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">y más...</span>
+                    <div className="mt-3 flex flex-wrap justify-center gap-2">
+                      {["linkedin", "indeed", "trabajando", "computrabajo", "getonbrd"].map((key) => {
+                        const s = JOB_SOURCES[key];
+                        return (
+                          <div key={key} className="flex items-center gap-1 rounded-full px-2 py-0.5" style={{ backgroundColor: s.bg + "15" }}>
+                            <SourceBadge sourceKey={key} size="sm" />
+                            <span className="text-[10px] font-medium" style={{ color: s.bg }}>{s.label}</span>
+                          </div>
+                        );
+                      })}
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground flex items-center">y más...</span>
                     </div>
                   </div>
                 </div>

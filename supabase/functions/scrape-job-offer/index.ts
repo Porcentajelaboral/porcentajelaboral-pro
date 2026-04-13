@@ -10,6 +10,7 @@ function detectSource(url: string): string {
   if (hostname.includes("indeed")) return "indeed";
   if (hostname.includes("trabajando")) return "trabajando";
   if (hostname.includes("computrabajo")) return "computrabajo";
+  if (hostname.includes("getonbrd") || hostname.includes("getonboard")) return "getonbrd";
   if (hostname.includes("laborum")) return "laborum";
   if (hostname.includes("bne") || hostname.includes("bolsanacionalempleo")) return "bne";
   if (hostname.includes("chiletrabajos")) return "chiletrabajos";

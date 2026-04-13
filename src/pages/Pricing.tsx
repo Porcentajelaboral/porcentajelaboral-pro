@@ -28,7 +28,7 @@ const plans = [
   },
   {
     key: "enterprise",
-    name: "Enterprise", monthly: 49990, icon: Building2, highlight: false,
+    name: "Enterprise", monthly: 29990, icon: Building2, highlight: false,
     features: ["Todo Elite", "Panel empresa", "Subir ofertas laborales", "Ver candidatos compatibles", "Multi-usuario hasta 5"],
     cta: "Contactar",
   },

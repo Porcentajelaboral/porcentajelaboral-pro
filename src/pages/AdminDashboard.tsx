@@ -205,6 +205,29 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
+        {/* Plan Preview Buttons */}
+        <Card className="mb-8 shadow-card">
+          <CardHeader>
+            <CardTitle className="text-lg">Vista previa de Dashboard por Plan</CardTitle>
+            <p className="text-sm text-muted-foreground">Accede al dashboard simulando cada plan para ver las funcionalidades visibles</p>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-3">
+              {["gratis", "premium", "elite", "enterprise"].map((planKey) => (
+                <Button
+                  key={planKey}
+                  variant="outline"
+                  className={`gap-2 ${planColor(planKey)}`}
+                  onClick={() => navigate(`/resultados?preview_plan=${planKey}`)}
+                >
+                  <FileText className="h-4 w-4" />
+                  Ver como {planKey.charAt(0).toUpperCase() + planKey.slice(1)}
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Tabs */}
         <div className="mb-6 flex gap-2 overflow-x-auto">
           {(["users", "subscriptions", "analyses"] as const).map((tab) => (

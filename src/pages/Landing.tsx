@@ -27,7 +27,7 @@ const plans = [
     cta: "Suscribirse", link: "/registro",
   },
   {
-    name: "Enterprise", price: "$49.990", period: " CLP/mes", icon: Building2, highlight: false,
+    name: "Enterprise", price: "$29.990", period: " CLP/mes", icon: Building2, highlight: false,
     features: ["Todo Elite", "Panel empresa", "Subir ofertas laborales", "Ver candidatos compatibles", "Multi-usuario hasta 5"],
     cta: "Contactar", link: "/registro",
   },

@@ -96,12 +96,28 @@ export default function Results() {
   const isElitePlus = ["elite", "enterprise"].includes(plan);
 
   useEffect(() => {
+    if (previewPlan && !analysisId) {
+      // Demo data for admin plan preview
+      setData({
+        porcentaje: 78,
+        nivel: "Alto",
+        resumen_ejecutivo: "Este es un ejemplo de vista previa del plan " + previewPlan.charAt(0).toUpperCase() + previewPlan.slice(1) + ". El candidato muestra un alto nivel de compatibilidad con la oferta laboral.",
+        habilidades_match: "React, TypeScript, Node.js, SQL, Git",
+        brechas: "Docker, Kubernetes, CI/CD",
+        recomendaciones: "Agregar experiencia con contenedores\nObtener certificación cloud\nMejorar sección de logros cuantificables",
+        keywords_faltan: "microservicios, agile, scrum",
+        preguntas_entrev: "¿Cómo manejas la priorización de tareas?\n¿Cuál fue tu mayor desafío técnico?\n¿Cómo trabajas en equipo remoto?\n¿Qué metodologías ágiles conoces?\n¿Cómo te mantienes actualizado?",
+        plan_mejora_cv: "Agregar sección de proyectos destacados\nCuantificar logros con métricas\nIncluir certificaciones relevantes\nMejorar el resumen profesional",
+      });
+      setLoading(false);
+      return;
+    }
     if (!analysisId) { setLoading(false); return; }
     supabase.from("analisis").select("*").eq("id", analysisId).single().then(({ data: d }) => {
       setData(d);
       setLoading(false);
     });
-  }, [analysisId]);
+  }, [analysisId, previewPlan]);
 
   if (loading) return <div className="container py-20 text-center text-muted-foreground">Cargando resultados...</div>;
   if (!data) return <div className="container py-20 text-center text-muted-foreground">No se encontró el análisis.</div>;

@@ -43,7 +43,7 @@ export function Footer() {
               <span>Gratis — $0</span>
               <span>Premium — $4.990/mes</span>
               <span>Elite — $9.990/mes</span>
-              <span>Enterprise — $49.990/mes</span>
+              <span>Enterprise — $29.990/mes</span>
             </div>
           </div>
         </div>

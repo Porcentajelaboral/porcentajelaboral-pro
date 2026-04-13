@@ -218,7 +218,7 @@ export default function AdminDashboard() {
                   key={planKey}
                   variant="outline"
                   className={`gap-2 ${planColor(planKey)}`}
-                  onClick={() => navigate(`/resultados?preview_plan=${planKey}`)}
+                  onClick={() => navigate(`/dashboard?preview_plan=${planKey}`)}
                 >
                   <FileText className="h-4 w-4" />
                   Ver como {planKey.charAt(0).toUpperCase() + planKey.slice(1)}

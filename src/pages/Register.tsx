@@ -43,20 +43,16 @@ export default function Register() {
       if (error) throw error;
 
       if (data.user) {
-        const { error: profileError } = await supabase.from("Perfiles").insert({
-          user_id: data.user.id,
-          plan_tipo: "gratis",
+        const { error: profileError } = await supabase.from("Perfiles").update({
           es_empresa: userType === "empresa",
           empresa_nombre: userType === "empresa" ? empresaNombre : null,
           acepta_terminos: acceptTerms,
           acepta_privacidad: acceptPrivacy,
           cv_en_pool: acceptPool,
           autoriza_contacto: acceptAlerts,
-          analisis_usados: 0,
-          mes_control: new Date().getMonth() + 1,
           nombre: name,
           email: email,
-        });
+        }).eq("user_id", data.user.id);
 
         if (profileError) throw profileError;
       }

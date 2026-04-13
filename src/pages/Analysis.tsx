@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { Upload, FileText, Briefcase, ArrowRight, Lock, LinkIcon, Loader2, X } from "lucide-react";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
+import { Upload, FileText, Briefcase, ArrowRight, Lock, LinkIcon, Loader2, X, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -39,6 +39,8 @@ async function extractTextFromPdf(file: File): Promise<string> {
 
 export default function Analysis() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const previewPlan = searchParams.get("preview_plan");
   const { user, profile, refreshProfile } = useAuth();
   const [cvText, setCvText] = useState("");
   const [jobText, setJobText] = useState("");
@@ -50,17 +52,16 @@ export default function Analysis() {
   const [useUrlMode, setUseUrlMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const plan = profile?.plan_tipo || "gratis";
-  const used = profile?.analisis_usados || 0;
+  const plan = previewPlan || profile?.plan_tipo || "gratis";
+  const used = previewPlan ? 3 : (profile?.analisis_usados || 0);
   const limit = PLAN_LIMITS[plan] || 5;
   const remaining = Math.max(0, limit - used);
-  const isLimitReached = remaining <= 0 && plan !== "elite" && plan !== "enterprise";
+  const isLimitReached = !previewPlan && remaining <= 0 && plan !== "elite" && plan !== "enterprise";
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate PDF: MIME type, extension, and size
     const { validatePdfFile } = await import("@/lib/validation");
     const validationError = validatePdfFile(file);
     if (validationError) {
@@ -140,6 +141,12 @@ export default function Analysis() {
   };
 
   const handleAnalyze = async () => {
+    if (previewPlan) {
+      toast.success("Vista previa: redirigiendo a resultados simulados");
+      navigate(`/resultados?preview_plan=${previewPlan}`);
+      return;
+    }
+
     if (!user) {
       toast.error("Debes iniciar sesión para analizar");
       navigate("/login");
@@ -183,18 +190,25 @@ export default function Analysis() {
 
   return (
     <div className="container max-w-4xl py-8">
+      {previewPlan && (
+        <div className="mb-4 rounded-lg border border-accent/30 bg-accent/10 p-3 text-center text-sm font-medium text-accent flex items-center justify-center gap-2">
+          <Eye className="h-4 w-4" />
+          Vista previa: Plan {plan.charAt(0).toUpperCase() + plan.slice(1)} — <Link to="/admin" className="underline">Volver al panel</Link>
+          {" | "}
+          <Link to={`/dashboard?preview_plan=${previewPlan}`} className="underline">Dashboard</Link>
+        </div>
+      )}
+
       <div className="mb-8 text-center">
         <h1 className="font-display text-3xl font-bold text-foreground">Analiza tu compatibilidad laboral</h1>
         <p className="mt-2 text-muted-foreground">Pega tu CV y la oferta laboral para obtener tu porcentaje de match</p>
-        {user && (
-          <div className="mt-3 inline-flex items-center gap-2 rounded-full border bg-card px-4 py-1.5 text-sm">
-            <span className="text-muted-foreground">Te quedan</span>
-            <span className={`font-display font-bold ${remaining <= 1 ? "text-destructive" : "text-accent"}`}>
-              {plan === "elite" || plan === "enterprise" ? "∞" : remaining}
-            </span>
-            <span className="text-muted-foreground">análisis este mes</span>
-          </div>
-        )}
+        <div className="mt-3 inline-flex items-center gap-2 rounded-full border bg-card px-4 py-1.5 text-sm">
+          <span className="text-muted-foreground">Te quedan</span>
+          <span className={`font-display font-bold ${remaining <= 1 ? "text-destructive" : "text-accent"}`}>
+            {plan === "elite" || plan === "enterprise" ? "∞" : remaining}
+          </span>
+          <span className="text-muted-foreground">análisis este mes</span>
+        </div>
       </div>
 
       {isLimitReached ? (

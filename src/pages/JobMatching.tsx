@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useSearchParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Briefcase, MapPin, ExternalLink, Lock, Loader2, SearchX, Sparkles } from "lucide-react";
+import { Briefcase, MapPin, ExternalLink, Lock, Loader2, SearchX, Sparkles, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -22,16 +22,31 @@ interface MatchedJob {
 
 const ALLOWED_PLANS = ["premium", "elite", "enterprise"];
 
+const MOCK_JOBS: MatchedJob[] = [
+  { title: "Desarrollador Full Stack", company: "TechCorp Chile", location: "Santiago, Chile", modality: "hybrid", compatibility: 92, reason: "Alto match en React, TypeScript y Node.js", url: "#", published_at: new Date().toISOString() },
+  { title: "Ingeniero de Software Senior", company: "StartupIA", location: "Remoto", modality: "remote", compatibility: 85, reason: "Experiencia relevante en arquitectura de software", url: "#", published_at: new Date().toISOString() },
+  { title: "Frontend Developer", company: "Digital Agency", location: "Valparaíso, Chile", modality: "in_office", compatibility: 78, reason: "Skills en React y CSS avanzado coinciden", url: "#", published_at: new Date().toISOString() },
+  { title: "Tech Lead", company: "FinTech Solutions", location: "Santiago, Chile", modality: "hybrid", compatibility: 71, reason: "Liderazgo técnico y stack compatible", url: "#", published_at: new Date().toISOString() },
+];
+
 export default function JobMatching() {
   const { user, profile, loading: authLoading } = useAuth();
+  const [searchParams] = useSearchParams();
+  const previewPlan = searchParams.get("preview_plan");
   const [jobs, setJobs] = useState<MatchedJob[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
-  const plan = profile?.plan_tipo || "gratis";
+  const plan = previewPlan || profile?.plan_tipo || "gratis";
   const hasAccess = ALLOWED_PLANS.includes(plan);
 
   const fetchJobs = async () => {
+    if (previewPlan) {
+      setJobs(MOCK_JOBS);
+      setSearched(true);
+      toast.success("Vista previa: mostrando ofertas simuladas");
+      return;
+    }
     if (!user) return;
     setLoading(true);
     try {
@@ -76,7 +91,7 @@ export default function JobMatching() {
     }
   };
 
-  if (authLoading) {
+  if (authLoading && !previewPlan) {
     return (
       <div className="container max-w-4xl py-16 text-center">
         <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
@@ -84,7 +99,7 @@ export default function JobMatching() {
     );
   }
 
-  if (!user) {
+  if (!user && !previewPlan) {
     return (
       <div className="container max-w-4xl py-16 text-center">
         <Lock className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
@@ -121,6 +136,15 @@ export default function JobMatching() {
 
   return (
     <div className="container max-w-4xl py-8">
+      {previewPlan && (
+        <div className="mb-4 rounded-lg border border-accent/30 bg-accent/10 p-3 text-center text-sm font-medium text-accent flex items-center justify-center gap-2">
+          <Eye className="h-4 w-4" />
+          Vista previa: Plan {plan.charAt(0).toUpperCase() + plan.slice(1)} — <Link to="/admin" className="underline">Volver al panel</Link>
+          {" | "}
+          <Link to={`/dashboard?preview_plan=${previewPlan}`} className="underline">Dashboard</Link>
+        </div>
+      )}
+
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-3">

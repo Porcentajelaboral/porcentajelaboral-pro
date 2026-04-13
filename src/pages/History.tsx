@@ -1,10 +1,21 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Clock, Filter, ChevronLeft, ChevronRight } from "lucide-react";
+import { Clock, Filter, ChevronLeft, ChevronRight, ExternalLink, Globe, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+
+const SOURCE_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
+  linkedin: { label: "LinkedIn", color: "bg-[#0A66C2] text-white", icon: "in" },
+  indeed: { label: "Indeed", color: "bg-[#2164F3] text-white", icon: "iD" },
+  trabajando: { label: "Trabajando", color: "bg-[#FF6B00] text-white", icon: "Tr" },
+  computrabajo: { label: "CompuTrabajo", color: "bg-[#1B9B4B] text-white", icon: "CT" },
+  laborum: { label: "Laborum", color: "bg-[#E31937] text-white", icon: "La" },
+  chiletrabajos: { label: "ChileTrabajos", color: "bg-[#003DA5] text-white", icon: "Ch" },
+  bne: { label: "BNE", color: "bg-[#003DA5] text-white", icon: "BN" },
+  otro: { label: "Otro", color: "bg-muted text-muted-foreground", icon: "🔗" },
+};
 
 interface Analysis {
   id: string;
@@ -12,6 +23,10 @@ interface Analysis {
   nivel: string | null;
   fecha: string | null;
   oferta_texto: string | null;
+  oferta_url: string | null;
+  oferta_titulo: string | null;
+  oferta_empresa: string | null;
+  fuente_oferta: string | null;
 }
 
 const PAGE_SIZE = 10;
@@ -41,12 +56,12 @@ export default function History() {
     const to = from + PAGE_SIZE - 1;
     supabase
       .from("analisis")
-      .select("id, porcentaje, nivel, fecha, oferta_texto", { count: "exact" })
+      .select("id, porcentaje, nivel, fecha, oferta_texto, oferta_url, oferta_titulo, oferta_empresa, fuente_oferta", { count: "exact" })
       .eq("user_id", user.id)
       .order(sortBy, { ascending: false })
       .range(from, to)
       .then(({ data, count }) => {
-        setAnalyses(data || []);
+        setAnalyses((data as any) || []);
         setTotal(count || 0);
         setLoading(false);
       });
@@ -86,25 +101,58 @@ export default function History() {
           </div>
         ) : (
           <div className="divide-y">
-            {analyses.map((a) => (
-              <motion.div key={a.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-4 p-5">
-                <div className="flex-1">
-                  <p className="font-medium text-card-foreground line-clamp-1">
-                    {a.oferta_texto?.substring(0, 80) || "Análisis"}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {a.fecha ? new Date(a.fecha).toLocaleDateString("es-CL", { day: "numeric", month: "long", year: "numeric" }) : ""}
-                  </p>
-                </div>
-                <NivelBadge nivel={a.nivel || "Medio"} />
-                <span className={`font-display font-bold ${(a.porcentaje || 0) >= 70 ? "text-accent" : (a.porcentaje || 0) >= 50 ? "text-yellow-500" : "text-destructive"}`}>
-                  {a.porcentaje}%
-                </span>
-                <Link to={`/resultados?id=${a.id}`}>
-                  <Button variant="outline" size="sm">Ver detalle</Button>
-                </Link>
-              </motion.div>
-            ))}
+            {analyses.map((a) => {
+              const sourceInfo = a.fuente_oferta ? SOURCE_CONFIG[a.fuente_oferta] || SOURCE_CONFIG.otro : null;
+              const title = a.oferta_titulo || a.oferta_texto?.substring(0, 80) || "Análisis";
+
+              return (
+                <motion.div key={a.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-3 p-4 sm:p-5">
+                  {/* Source icon */}
+                  {sourceInfo ? (
+                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${sourceInfo.color}`}>
+                      {sourceInfo.icon === "🔗" ? <Globe className="h-4 w-4" /> : sourceInfo.icon}
+                    </div>
+                  ) : (
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                      <Building2 className="h-4 w-4" />
+                    </div>
+                  )}
+
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-card-foreground line-clamp-1">{title}</p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      {a.oferta_empresa && <span>{a.oferta_empresa}</span>}
+                      {a.oferta_empresa && a.fecha && <span>·</span>}
+                      {a.fecha && (
+                        <span>{new Date(a.fecha).toLocaleDateString("es-CL", { day: "numeric", month: "short", year: "numeric" })}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <NivelBadge nivel={a.nivel || "Medio"} />
+
+                  <span className={`font-display font-bold text-sm sm:text-base ${(a.porcentaje || 0) >= 70 ? "text-accent" : (a.porcentaje || 0) >= 50 ? "text-yellow-500" : "text-destructive"}`}>
+                    {a.porcentaje}%
+                  </span>
+
+                  <div className="flex items-center gap-1.5">
+                    {a.oferta_url && (
+                      <a href={a.oferta_url} target="_blank" rel="noopener noreferrer">
+                        <Button variant="outline" size="sm" className="gap-1 text-xs hidden sm:flex">
+                          <ExternalLink className="h-3.5 w-3.5" /> Postular
+                        </Button>
+                        <Button variant="outline" size="icon" className="h-8 w-8 sm:hidden">
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Button>
+                      </a>
+                    )}
+                    <Link to={`/resultados?id=${a.id}`}>
+                      <Button variant="outline" size="sm" className="text-xs">Ver detalle</Button>
+                    </Link>
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
         )}
       </div>

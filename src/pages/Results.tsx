@@ -86,11 +86,12 @@ function NivelBadge({ nivel }: { nivel: string }) {
 export default function Results() {
   const [searchParams] = useSearchParams();
   const analysisId = searchParams.get("id");
+  const previewPlan = searchParams.get("preview_plan");
   const { profile } = useAuth();
   const [data, setData] = useState<AnalysisData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const plan = profile?.plan_tipo || "gratis";
+  const plan = previewPlan || profile?.plan_tipo || "gratis";
   const isPremiumPlus = ["premium", "elite", "enterprise"].includes(plan);
   const isElitePlus = ["elite", "enterprise"].includes(plan);
 

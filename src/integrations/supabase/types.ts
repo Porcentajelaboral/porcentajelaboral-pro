@@ -179,6 +179,7 @@ export type Database = {
           mes_control: number | null
           nombre: string | null
           plan_tipo: string | null
+          ultima_actualizacion_password: string | null
           user_id: string
         }
         Insert: {
@@ -196,6 +197,7 @@ export type Database = {
           mes_control?: number | null
           nombre?: string | null
           plan_tipo?: string | null
+          ultima_actualizacion_password?: string | null
           user_id?: string
         }
         Update: {
@@ -213,6 +215,7 @@ export type Database = {
           mes_control?: number | null
           nombre?: string | null
           plan_tipo?: string | null
+          ultima_actualizacion_password?: string | null
           user_id?: string
         }
         Relationships: []

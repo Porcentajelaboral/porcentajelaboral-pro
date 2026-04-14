@@ -152,7 +152,7 @@ export default function JobMatching() {
             <Briefcase className="h-6 w-6 text-accent" /> Ofertas Compatibles
           </h1>
           <p className="mt-2 text-muted-foreground">
-            Ofertas reales de GetOnBoard rankeadas por IA según tu último análisis
+            Ofertas reales de GetOnBoard, Trabajando, Computrabajo, Indeed y Laborum rankeadas por IA según tu último análisis
           </p>
         </div>
         <Button

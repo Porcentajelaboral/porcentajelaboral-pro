@@ -217,6 +217,36 @@ export type Database = {
         }
         Relationships: []
       }
+      preguntas_seguridad: {
+        Row: {
+          created_at: string
+          id: string
+          pregunta_1: string
+          pregunta_2: string
+          respuesta_1: string
+          respuesta_2: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pregunta_1: string
+          pregunta_2: string
+          respuesta_1: string
+          respuesta_2: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pregunta_1?: string
+          pregunta_2?: string
+          respuesta_1?: string
+          respuesta_2?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       suscripciones: {
         Row: {
           activa: boolean | null

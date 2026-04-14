@@ -218,6 +218,9 @@ export default function JobMatching() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="font-display font-semibold text-card-foreground truncate">{job.title}</h3>
                   <Badge variant="secondary">{modalityLabel(job.modality)}</Badge>
+                  {job.source && (
+                    <Badge variant="outline" className="text-xs">{job.source}</Badge>
+                  )}
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">{job.company}</p>
                 <div className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">

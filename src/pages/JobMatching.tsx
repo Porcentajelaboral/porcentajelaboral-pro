@@ -18,15 +18,16 @@ interface MatchedJob {
   reason: string;
   url: string;
   published_at: string | null;
+  source?: string;
 }
 
 const ALLOWED_PLANS = ["premium", "elite", "enterprise"];
 
 const MOCK_JOBS: MatchedJob[] = [
-  { title: "Desarrollador Full Stack", company: "TechCorp Chile", location: "Santiago, Chile", modality: "hybrid", compatibility: 92, reason: "Alto match en React, TypeScript y Node.js", url: "#", published_at: new Date().toISOString() },
-  { title: "Ingeniero de Software Senior", company: "StartupIA", location: "Remoto", modality: "remote", compatibility: 85, reason: "Experiencia relevante en arquitectura de software", url: "#", published_at: new Date().toISOString() },
-  { title: "Frontend Developer", company: "Digital Agency", location: "Valparaíso, Chile", modality: "in_office", compatibility: 78, reason: "Skills en React y CSS avanzado coinciden", url: "#", published_at: new Date().toISOString() },
-  { title: "Tech Lead", company: "FinTech Solutions", location: "Santiago, Chile", modality: "hybrid", compatibility: 71, reason: "Liderazgo técnico y stack compatible", url: "#", published_at: new Date().toISOString() },
+  { title: "Desarrollador Full Stack", company: "TechCorp Chile", location: "Santiago, Chile", modality: "hybrid", compatibility: 92, reason: "Alto match en React, TypeScript y Node.js", url: "#", published_at: new Date().toISOString(), source: "GetOnBoard" },
+  { title: "Ingeniero de Software Senior", company: "StartupIA", location: "Remoto", modality: "remote", compatibility: 85, reason: "Experiencia relevante en arquitectura de software", url: "#", published_at: new Date().toISOString(), source: "Trabajando" },
+  { title: "Frontend Developer", company: "Digital Agency", location: "Valparaíso, Chile", modality: "in_office", compatibility: 78, reason: "Skills en React y CSS avanzado coinciden", url: "#", published_at: new Date().toISOString(), source: "Computrabajo" },
+  { title: "Tech Lead", company: "FinTech Solutions", location: "Santiago, Chile", modality: "hybrid", compatibility: 71, reason: "Liderazgo técnico y stack compatible", url: "#", published_at: new Date().toISOString(), source: "Indeed" },
 ];
 
 export default function JobMatching() {
@@ -151,7 +152,7 @@ export default function JobMatching() {
             <Briefcase className="h-6 w-6 text-accent" /> Ofertas Compatibles
           </h1>
           <p className="mt-2 text-muted-foreground">
-            Ofertas reales de GetOnBoard rankeadas por IA según tu último análisis
+            Ofertas reales de GetOnBoard, Trabajando, Computrabajo, Indeed y Laborum rankeadas por IA según tu último análisis
           </p>
         </div>
         <Button
@@ -217,6 +218,9 @@ export default function JobMatching() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="font-display font-semibold text-card-foreground truncate">{job.title}</h3>
                   <Badge variant="secondary">{modalityLabel(job.modality)}</Badge>
+                  {job.source && (
+                    <Badge variant="outline" className="text-xs">{job.source}</Badge>
+                  )}
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">{job.company}</p>
                 <div className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">

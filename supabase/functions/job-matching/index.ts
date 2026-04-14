@@ -7,6 +7,221 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+interface JobResult {
+  title: string;
+  company: string;
+  location: string;
+  modality: string;
+  url: string;
+  published_at: string | null;
+  source: string;
+  description_snippet: string;
+}
+
+// ---------- GetOnBoard ----------
+async function fetchGetOnBoard(keywords: string[]): Promise<JobResult[]> {
+  const jobs: JobResult[] = [];
+  const seenIds = new Set<string>();
+
+  for (const keyword of keywords) {
+    try {
+      const url = `https://www.getonbrd.com/api/v0/search/jobs?query=${encodeURIComponent(keyword)}&per_page=10`;
+      const resp = await fetch(url, { headers: { Accept: "application/json" } });
+      if (!resp.ok) continue;
+      const json = await resp.json();
+      for (const job of json.data || []) {
+        const id = String(job.id || job.attributes?.id || "");
+        if (!id || seenIds.has(id)) continue;
+        seenIds.add(id);
+        const attrs = job.attributes || job;
+        const companyAttrs = attrs.company?.data?.attributes || {};
+        jobs.push({
+          title: attrs.title || "Sin título",
+          company: companyAttrs.name || attrs.company_name || "Empresa",
+          location: attrs.remote ? "Remoto" : (attrs.country || "Chile"),
+          modality: attrs.modality || (attrs.remote ? "remote" : "hybrid"),
+          url: attrs.public_url || attrs.url || `https://www.getonbrd.com/jobs/${attrs.id}`,
+          published_at: attrs.published_at || null,
+          source: "GetOnBoard",
+          description_snippet: (attrs.description_headline || attrs.description || "").substring(0, 300),
+        });
+      }
+    } catch (e) {
+      console.error(`GetOnBoard error for "${keyword}":`, e);
+    }
+  }
+  return jobs;
+}
+
+// ---------- Trabajando.com (scrape search page) ----------
+async function fetchTrabajando(keywords: string[]): Promise<JobResult[]> {
+  const jobs: JobResult[] = [];
+  const seenUrls = new Set<string>();
+
+  for (const keyword of keywords.slice(0, 3)) {
+    try {
+      const url = `https://www.trabajando.cl/trabajo-empleo/q-${encodeURIComponent(keyword)}`;
+      const resp = await fetch(url, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; PorcentajeLaboralBot/1.0)",
+          Accept: "text/html",
+        },
+      });
+      if (!resp.ok) continue;
+      const html = await resp.text();
+
+      // Parse job listings from HTML using regex patterns
+      const jobPattern = /<a[^>]*href="(\/empleo\/[^"]+)"[^>]*>[\s\S]*?<h2[^>]*>(.*?)<\/h2>[\s\S]*?<span[^>]*class="[^"]*company[^"]*"[^>]*>(.*?)<\/span>/gi;
+      let match;
+      while ((match = jobPattern.exec(html)) !== null) {
+        const jobUrl = `https://www.trabajando.cl${match[1]}`;
+        if (seenUrls.has(jobUrl)) continue;
+        seenUrls.add(jobUrl);
+        jobs.push({
+          title: match[2].replace(/<[^>]*>/g, "").trim(),
+          company: match[3].replace(/<[^>]*>/g, "").trim(),
+          location: "Chile",
+          modality: "hybrid",
+          url: jobUrl,
+          published_at: null,
+          source: "Trabajando",
+          description_snippet: "",
+        });
+      }
+    } catch (e) {
+      console.error(`Trabajando error for "${keyword}":`, e);
+    }
+  }
+  return jobs;
+}
+
+// ---------- Computrabajo ----------
+async function fetchComputrabajo(keywords: string[]): Promise<JobResult[]> {
+  const jobs: JobResult[] = [];
+  const seenUrls = new Set<string>();
+
+  for (const keyword of keywords.slice(0, 3)) {
+    try {
+      const url = `https://www.computrabajo.cl/trabajo-de-${encodeURIComponent(keyword.replace(/\s+/g, "-"))}`;
+      const resp = await fetch(url, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; PorcentajeLaboralBot/1.0)",
+          Accept: "text/html",
+        },
+      });
+      if (!resp.ok) continue;
+      const html = await resp.text();
+
+      // Parse listings
+      const listingPattern = /<a[^>]*href="(\/ofertas-de-trabajo\/[^"]+)"[^>]*class="[^"]*js-o-link[^"]*"[^>]*>([\s\S]*?)<\/a>/gi;
+      let match;
+      while ((match = listingPattern.exec(html)) !== null) {
+        const jobUrl = `https://www.computrabajo.cl${match[1]}`;
+        if (seenUrls.has(jobUrl)) continue;
+        seenUrls.add(jobUrl);
+        const title = match[2].replace(/<[^>]*>/g, "").trim();
+        if (!title) continue;
+        jobs.push({
+          title,
+          company: "Ver en Computrabajo",
+          location: "Chile",
+          modality: "hybrid",
+          url: jobUrl,
+          published_at: null,
+          source: "Computrabajo",
+          description_snippet: "",
+        });
+      }
+    } catch (e) {
+      console.error(`Computrabajo error for "${keyword}":`, e);
+    }
+  }
+  return jobs;
+}
+
+// ---------- Indeed ----------
+async function fetchIndeed(keywords: string[]): Promise<JobResult[]> {
+  const jobs: JobResult[] = [];
+  const seenUrls = new Set<string>();
+
+  for (const keyword of keywords.slice(0, 3)) {
+    try {
+      const url = `https://cl.indeed.com/jobs?q=${encodeURIComponent(keyword)}&l=Chile&limit=10`;
+      const resp = await fetch(url, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; PorcentajeLaboralBot/1.0)",
+          Accept: "text/html",
+        },
+      });
+      if (!resp.ok) continue;
+      const html = await resp.text();
+
+      // Parse job cards
+      const cardPattern = /<a[^>]*id="job_([^"]+)"[^>]*href="([^"]*)"[^>]*>[\s\S]*?<span[^>]*>(.*?)<\/span>/gi;
+      let match;
+      while ((match = cardPattern.exec(html)) !== null) {
+        const jobUrl = match[2].startsWith("http") ? match[2] : `https://cl.indeed.com${match[2]}`;
+        if (seenUrls.has(jobUrl)) continue;
+        seenUrls.add(jobUrl);
+        jobs.push({
+          title: match[3].replace(/<[^>]*>/g, "").trim(),
+          company: "Ver en Indeed",
+          location: "Chile",
+          modality: "hybrid",
+          url: jobUrl,
+          published_at: null,
+          source: "Indeed",
+          description_snippet: "",
+        });
+      }
+    } catch (e) {
+      console.error(`Indeed error for "${keyword}":`, e);
+    }
+  }
+  return jobs;
+}
+
+// ---------- Laborum ----------
+async function fetchLaborum(keywords: string[]): Promise<JobResult[]> {
+  const jobs: JobResult[] = [];
+  const seenUrls = new Set<string>();
+
+  for (const keyword of keywords.slice(0, 3)) {
+    try {
+      const url = `https://www.laborum.cl/empleos-busqueda-${encodeURIComponent(keyword.replace(/\s+/g, "-"))}.html`;
+      const resp = await fetch(url, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; PorcentajeLaboralBot/1.0)",
+          Accept: "text/html",
+        },
+      });
+      if (!resp.ok) continue;
+      const html = await resp.text();
+
+      const listingPattern = /<a[^>]*href="(\/empleos\/[^"]+)"[^>]*>[\s\S]*?<h2[^>]*>(.*?)<\/h2>/gi;
+      let match;
+      while ((match = listingPattern.exec(html)) !== null) {
+        const jobUrl = `https://www.laborum.cl${match[1]}`;
+        if (seenUrls.has(jobUrl)) continue;
+        seenUrls.add(jobUrl);
+        jobs.push({
+          title: match[2].replace(/<[^>]*>/g, "").trim(),
+          company: "Ver en Laborum",
+          location: "Chile",
+          modality: "hybrid",
+          url: jobUrl,
+          published_at: null,
+          source: "Laborum",
+          description_snippet: "",
+        });
+      }
+    } catch (e) {
+      console.error(`Laborum error for "${keyword}":`, e);
+    }
+  }
+  return jobs;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -30,15 +245,15 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    // Fix: use getUser instead of getClaims
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData?.user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userId = claimsData.claims.sub;
+    const userId = userData.user.id;
 
     // Get user profile to check plan
     const { data: profile } = await supabase
@@ -59,7 +274,7 @@ serve(async (req) => {
     // Get last analysis
     const { data: lastAnalysis } = await supabase
       .from("analisis")
-      .select("cv_texto, habilidades_match, keywords_faltan")
+      .select("cv_texto, habilidades_match, keywords_faltan, oferta_titulo")
       .eq("user_id", userId)
       .order("fecha", { ascending: false })
       .limit(1)
@@ -75,7 +290,8 @@ serve(async (req) => {
     // Extract keywords from skills and missing keywords
     const skills = (lastAnalysis.habilidades_match || "").split(",").map((s: string) => s.trim()).filter(Boolean);
     const missingKw = (lastAnalysis.keywords_faltan || "").split(",").map((s: string) => s.trim()).filter(Boolean);
-    const allKeywords = [...new Set([...skills, ...missingKw])].slice(0, 5);
+    const titleKw = (lastAnalysis.oferta_titulo || "").split(/[\s,]+/).filter((w: string) => w.length > 3);
+    const allKeywords = [...new Set([...skills, ...missingKw, ...titleKw])].slice(0, 5);
 
     if (allKeywords.length === 0) {
       return new Response(JSON.stringify({ error: "No se encontraron keywords en tu último análisis." }), {
@@ -84,31 +300,26 @@ serve(async (req) => {
       });
     }
 
-    // Fetch jobs from GetOnBoard for each keyword
-    const allJobs: any[] = [];
-    const seenIds = new Set<string>();
+    console.log("Searching jobs with keywords:", allKeywords);
 
-    for (const keyword of allKeywords) {
-      try {
-        const url = `https://www.getonbrd.com/api/v0/search/jobs?query=${encodeURIComponent(keyword)}&per_page=10`;
-        const resp = await fetch(url, {
-          headers: { "Accept": "application/json" },
-        });
-        if (resp.ok) {
-          const json = await resp.json();
-          const jobs = json.data || [];
-          for (const job of jobs) {
-            const id = job.id || job.attributes?.id;
-            if (id && !seenIds.has(String(id))) {
-              seenIds.add(String(id));
-              allJobs.push(job);
-            }
-          }
-        }
-      } catch (e) {
-        console.error(`Error fetching jobs for keyword "${keyword}":`, e);
-      }
-    }
+    // Fetch jobs from ALL portals in parallel
+    const [getOnBoardJobs, trabajandoJobs, computrabajoJobs, indeedJobs, laborumJobs] = await Promise.all([
+      fetchGetOnBoard(allKeywords),
+      fetchTrabajando(allKeywords),
+      fetchComputrabajo(allKeywords),
+      fetchIndeed(allKeywords),
+      fetchLaborum(allKeywords),
+    ]);
+
+    const allJobs: JobResult[] = [
+      ...getOnBoardJobs,
+      ...trabajandoJobs,
+      ...computrabajoJobs,
+      ...indeedJobs,
+      ...laborumJobs,
+    ];
+
+    console.log(`Found jobs: GetOnBoard=${getOnBoardJobs.length}, Trabajando=${trabajandoJobs.length}, Computrabajo=${computrabajoJobs.length}, Indeed=${indeedJobs.length}, Laborum=${laborumJobs.length}`);
 
     if (allJobs.length === 0) {
       return new Response(JSON.stringify({ jobs: [], message: "No se encontraron ofertas compatibles." }), {
@@ -118,9 +329,8 @@ serve(async (req) => {
     }
 
     // Build job summaries for AI ranking
-    const jobSummaries = allJobs.slice(0, 30).map((job, i) => {
-      const attrs = job.attributes || job;
-      return `[${i}] Título: ${attrs.title || "N/A"} | Empresa: ${attrs.company?.data?.attributes?.name || attrs.company_name || "N/A"} | Descripción: ${(attrs.description_headline || attrs.description || "").substring(0, 200)}`;
+    const jobSummaries = allJobs.slice(0, 40).map((job, i) => {
+      return `[${i}] Título: ${job.title} | Empresa: ${job.company} | Portal: ${job.source} | Ubicación: ${job.location} | Desc: ${job.description_snippet.substring(0, 150)}`;
     }).join("\n");
 
     const cvSummary = (lastAnalysis.cv_texto || "").substring(0, 2000);
@@ -177,17 +387,16 @@ serve(async (req) => {
     const rankedJobs = rankings.slice(0, maxJobs).map((rank: any) => {
       const job = allJobs[rank.index];
       if (!job) return null;
-      const attrs = job.attributes || job;
-      const companyAttrs = attrs.company?.data?.attributes || {};
       return {
-        title: attrs.title || "Sin título",
-        company: companyAttrs.name || attrs.company_name || "Empresa",
-        location: attrs.remote ? "Remoto" : (attrs.country || "Chile"),
-        modality: attrs.modality || (attrs.remote ? "remote" : "hybrid"),
+        title: job.title,
+        company: job.company,
+        location: job.location,
+        modality: job.modality,
         compatibility: rank.compatibilidad,
         reason: rank.razon,
-        url: attrs.public_url || attrs.url || `https://www.getonbrd.com/jobs/${attrs.id}`,
-        published_at: attrs.published_at || null,
+        url: job.url,
+        published_at: job.published_at,
+        source: job.source,
       };
     }).filter(Boolean);
 

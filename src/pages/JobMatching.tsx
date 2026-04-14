@@ -24,10 +24,10 @@ interface MatchedJob {
 const ALLOWED_PLANS = ["premium", "elite", "enterprise"];
 
 const MOCK_JOBS: MatchedJob[] = [
-  { title: "Desarrollador Full Stack", company: "TechCorp Chile", location: "Santiago, Chile", modality: "hybrid", compatibility: 92, reason: "Alto match en React, TypeScript y Node.js", url: "#", published_at: new Date().toISOString() },
-  { title: "Ingeniero de Software Senior", company: "StartupIA", location: "Remoto", modality: "remote", compatibility: 85, reason: "Experiencia relevante en arquitectura de software", url: "#", published_at: new Date().toISOString() },
-  { title: "Frontend Developer", company: "Digital Agency", location: "Valparaíso, Chile", modality: "in_office", compatibility: 78, reason: "Skills en React y CSS avanzado coinciden", url: "#", published_at: new Date().toISOString() },
-  { title: "Tech Lead", company: "FinTech Solutions", location: "Santiago, Chile", modality: "hybrid", compatibility: 71, reason: "Liderazgo técnico y stack compatible", url: "#", published_at: new Date().toISOString() },
+  { title: "Desarrollador Full Stack", company: "TechCorp Chile", location: "Santiago, Chile", modality: "hybrid", compatibility: 92, reason: "Alto match en React, TypeScript y Node.js", url: "#", published_at: new Date().toISOString(), source: "GetOnBoard" },
+  { title: "Ingeniero de Software Senior", company: "StartupIA", location: "Remoto", modality: "remote", compatibility: 85, reason: "Experiencia relevante en arquitectura de software", url: "#", published_at: new Date().toISOString(), source: "Trabajando" },
+  { title: "Frontend Developer", company: "Digital Agency", location: "Valparaíso, Chile", modality: "in_office", compatibility: 78, reason: "Skills en React y CSS avanzado coinciden", url: "#", published_at: new Date().toISOString(), source: "Computrabajo" },
+  { title: "Tech Lead", company: "FinTech Solutions", location: "Santiago, Chile", modality: "hybrid", compatibility: 71, reason: "Liderazgo técnico y stack compatible", url: "#", published_at: new Date().toISOString(), source: "Indeed" },
 ];
 
 export default function JobMatching() {

@@ -88,7 +88,7 @@ export default function Login() {
               {loading ? "Ingresando..." : "Iniciar Sesión"}
             </Button>
             <div className="text-right">
-              <Link to="/recuperar-password" className="text-xs text-accent hover:underline">
+              <Link to="/forgot-password" className="text-xs text-accent hover:underline">
                 ¿Olvidaste tu contraseña?
               </Link>
             </div>

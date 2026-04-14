@@ -10,7 +10,9 @@ import {
   Heading,
   Html,
   Preview,
+  Section,
   Text,
+  Hr,
 } from 'npm:@react-email/components@0.0.22'
 
 interface RecoveryEmailProps {
@@ -22,22 +24,32 @@ export const RecoveryEmail = ({
   siteName,
   confirmationUrl,
 }: RecoveryEmailProps) => (
-  <Html lang="en" dir="ltr">
+  <Html lang="es" dir="ltr">
     <Head />
-    <Preview>Reset your password for {siteName}</Preview>
+    <Preview>Recupera tu contraseña de PorcentajeLaboral</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>Reset your password</Heading>
+        <Section style={header}>
+          <Text style={logoText}>📊 PorcentajeLaboral</Text>
+        </Section>
+        <Hr style={hr} />
+        <Heading style={h1}>Recupera tu contraseña</Heading>
         <Text style={text}>
-          We received a request to reset your password for {siteName}. Click
-          the button below to choose a new password.
+          Recibimos una solicitud para restablecer tu contraseña en PorcentajeLaboral.
+          Haz clic en el botón para elegir una nueva contraseña.
         </Text>
-        <Button style={button} href={confirmationUrl}>
-          Reset Password
-        </Button>
-        <Text style={footer}>
-          If you didn't request a password reset, you can safely ignore this
-          email. Your password will not be changed.
+        <Section style={buttonContainer}>
+          <Button style={button} href={confirmationUrl}>
+            Restablecer contraseña
+          </Button>
+        </Section>
+        <Text style={textSmall}>
+          Este enlace expirará en unos minutos. Si no solicitaste este cambio,
+          puedes ignorar este correo. Tu contraseña no será modificada.
+        </Text>
+        <Hr style={hr} />
+        <Text style={footerBrand}>
+          © PorcentajeLaboral — Análisis inteligente de compatibilidad laboral
         </Text>
       </Container>
     </Body>
@@ -46,26 +58,14 @@ export const RecoveryEmail = ({
 
 export default RecoveryEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
-const container = { padding: '20px 25px' }
-const h1 = {
-  fontSize: '22px',
-  fontWeight: 'bold' as const,
-  color: '#000000',
-  margin: '0 0 20px',
-}
-const text = {
-  fontSize: '14px',
-  color: '#55575d',
-  lineHeight: '1.5',
-  margin: '0 0 25px',
-}
-const button = {
-  backgroundColor: '#000000',
-  color: '#ffffff',
-  fontSize: '14px',
-  borderRadius: '8px',
-  padding: '12px 20px',
-  textDecoration: 'none',
-}
-const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
+const main = { backgroundColor: '#ffffff', fontFamily: "'Inter', 'Space Grotesk', Arial, sans-serif" }
+const container = { padding: '32px 28px', maxWidth: '520px', margin: '0 auto' }
+const header = { textAlign: 'center' as const, marginBottom: '8px' }
+const logoText = { fontSize: '20px', fontWeight: 'bold' as const, color: '#1D3557', margin: '0' }
+const hr = { borderColor: '#E2E8F0', margin: '20px 0' }
+const h1 = { fontSize: '24px', fontWeight: 'bold' as const, color: '#1D3557', margin: '0 0 16px' }
+const text = { fontSize: '15px', color: '#4A5568', lineHeight: '1.6', margin: '0 0 20px' }
+const textSmall = { fontSize: '13px', color: '#94A3B8', lineHeight: '1.5', margin: '0 0 20px' }
+const buttonContainer = { textAlign: 'center' as const, margin: '8px 0 24px' }
+const button = { backgroundColor: '#00C853', color: '#ffffff', fontSize: '15px', fontWeight: 'bold' as const, borderRadius: '12px', padding: '14px 28px', textDecoration: 'none' }
+const footerBrand = { fontSize: '11px', color: '#B0BEC5', margin: '0', textAlign: 'center' as const }

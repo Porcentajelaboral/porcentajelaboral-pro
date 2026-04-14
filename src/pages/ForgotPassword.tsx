@@ -202,9 +202,9 @@ export default function ForgotPassword() {
 
           {step === "newPassword" && (
             <form className="space-y-4" onSubmit={handlePasswordSubmit}>
-              <div className="rounded-lg bg-green-50 p-3 text-center dark:bg-green-950/30">
-                <CheckCircle2 className="mx-auto mb-1 h-6 w-6 text-green-600" />
-                <p className="text-xs text-green-700 dark:text-green-400">Identidad verificada. Ingresa tu nueva contraseña.</p>
+              <div className="rounded-lg bg-accent/10 p-3 text-center">
+                <CheckCircle2 className="mx-auto mb-1 h-6 w-6 text-accent" />
+                <p className="text-xs text-accent">Identidad verificada. Ingresa tu nueva contraseña.</p>
               </div>
               <div>
                 <Label htmlFor="newPassword">Nueva contraseña</Label>
@@ -264,8 +264,8 @@ export default function ForgotPassword() {
 
           {step === "success" && (
             <div className="space-y-4 text-center">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-100 dark:bg-green-950/30">
-                <CheckCircle2 className="h-8 w-8 text-green-600" />
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-accent/10">
+                <CheckCircle2 className="h-8 w-8 text-accent" />
               </div>
               <h2 className="text-lg font-semibold text-foreground">¡Contraseña actualizada!</h2>
               <p className="text-sm text-muted-foreground">

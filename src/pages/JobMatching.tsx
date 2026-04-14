@@ -18,6 +18,7 @@ interface MatchedJob {
   reason: string;
   url: string;
   published_at: string | null;
+  source?: string;
 }
 
 const ALLOWED_PLANS = ["premium", "elite", "enterprise"];

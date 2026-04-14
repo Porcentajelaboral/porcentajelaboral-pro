@@ -1,12 +1,22 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { BarChart3, Mail, Lock, User, Building2 } from "lucide-react";
+import { BarChart3, Mail, Lock, User, Building2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+const SECURITY_QUESTIONS = [
+  "¿Cuál es el nombre de tu primera mascota?",
+  "¿En qué ciudad naciste?",
+  "¿Cuál es el nombre de tu mejor amigo/a de la infancia?",
+  "¿Cuál fue tu primer empleo?",
+  "¿Cuál es tu comida favorita?",
+  "¿Cuál es el nombre de tu escuela primaria?",
+];
 
 export default function Register() {
   const navigate = useNavigate();
@@ -22,7 +32,26 @@ export default function Register() {
   const [acceptAlerts, setAcceptAlerts] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const canSubmit = acceptTerms && acceptPrivacy && name && email && password && confirmPassword && password === confirmPassword && password.length >= 8;
+  // Security questions
+  const [pregunta1, setPregunta1] = useState("");
+  const [respuesta1, setRespuesta1] = useState("");
+  const [pregunta2, setPregunta2] = useState("");
+  const [respuesta2, setRespuesta2] = useState("");
+
+  const canSubmit =
+    acceptTerms &&
+    acceptPrivacy &&
+    name &&
+    email &&
+    password &&
+    confirmPassword &&
+    password === confirmPassword &&
+    password.length >= 8 &&
+    pregunta1 &&
+    respuesta1 &&
+    pregunta2 &&
+    respuesta2 &&
+    pregunta1 !== pregunta2;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,6 +81,21 @@ export default function Register() {
 
       if (error) throw error;
 
+      // Save security questions
+      if (data.user) {
+        const { error: secError } = await supabase.from("preguntas_seguridad").insert({
+          user_id: data.user.id,
+          pregunta_1: pregunta1,
+          respuesta_1: respuesta1.trim().toLowerCase(),
+          pregunta_2: pregunta2,
+          respuesta_2: respuesta2.trim().toLowerCase(),
+        });
+        if (secError) {
+          console.error("Error saving security questions:", secError);
+          toast.error("Cuenta creada, pero hubo un error guardando las preguntas de seguridad. Puedes configurarlas después.");
+        }
+      }
+
       toast.success("¡Cuenta creada exitosamente! Revisa tu email para confirmar.");
       navigate("/dashboard");
     } catch (err: any) {
@@ -60,6 +104,8 @@ export default function Register() {
       setLoading(false);
     }
   };
+
+  const availableQ2 = SECURITY_QUESTIONS.filter((q) => q !== pregunta1);
 
   return (
     <div className="flex min-h-[80vh] items-center justify-center px-4 py-8">
@@ -148,6 +194,66 @@ export default function Register() {
                 </div>
               </div>
             )}
+
+            {/* Security Questions */}
+            <div className="space-y-3 rounded-lg border border-accent/20 bg-accent/5 p-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-accent">
+                <ShieldCheck className="h-4 w-4" />
+                Preguntas de Seguridad
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Estas preguntas te permitirán recuperar tu contraseña sin necesidad de correo.
+              </p>
+
+              <div>
+                <Label className="text-xs">Pregunta 1</Label>
+                <Select value={pregunta1} onValueChange={setPregunta1}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Selecciona una pregunta" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SECURITY_QUESTIONS.map((q) => (
+                      <SelectItem key={q} value={q}>{q}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {pregunta1 && (
+                  <Input
+                    className="mt-1.5"
+                    placeholder="Tu respuesta"
+                    value={respuesta1}
+                    onChange={(e) => setRespuesta1(e.target.value)}
+                    required
+                  />
+                )}
+              </div>
+
+              <div>
+                <Label className="text-xs">Pregunta 2</Label>
+                <Select value={pregunta2} onValueChange={setPregunta2}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Selecciona una pregunta" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableQ2.map((q) => (
+                      <SelectItem key={q} value={q}>{q}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {pregunta1 === pregunta2 && pregunta2 && (
+                  <p className="mt-1 text-xs text-destructive">Debes elegir preguntas diferentes</p>
+                )}
+                {pregunta2 && pregunta1 !== pregunta2 && (
+                  <Input
+                    className="mt-1.5"
+                    placeholder="Tu respuesta"
+                    value={respuesta2}
+                    onChange={(e) => setRespuesta2(e.target.value)}
+                    required
+                  />
+                )}
+              </div>
+            </div>
 
             {/* Checkboxes */}
             <div className="space-y-3 pt-2">

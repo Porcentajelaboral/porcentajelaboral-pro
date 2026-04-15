@@ -54,19 +54,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (user) await fetchProfile(user.id);
   };
 
+  // Save pending security questions after email confirmation
+  const savePendingSecurityQuestions = async (userId: string) => {
+    const pending = localStorage.getItem("pending_security_questions");
+    if (!pending) return;
+    try {
+      const questions = JSON.parse(pending);
+      if (questions.user_id === userId) {
+        const { error } = await supabase.from("preguntas_seguridad").insert({
+          user_id: userId,
+          pregunta_1: questions.pregunta_1,
+          respuesta_1: questions.respuesta_1,
+          pregunta_2: questions.pregunta_2,
+          respuesta_2: questions.respuesta_2,
+        });
+        if (!error) {
+          localStorage.removeItem("pending_security_questions");
+        }
+      }
+    } catch {
+      // Silently fail - questions can be set later
+    }
+  };
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id);
+      if (session?.user) {
+        fetchProfile(session.user.id);
+        savePendingSecurityQuestions(session.user.id);
+      }
       setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id);
-      else setProfile(null);
+      if (session?.user) {
+        fetchProfile(session.user.id);
+        savePendingSecurityQuestions(session.user.id);
+      } else {
+        setProfile(null);
+      }
       setLoading(false);
     });
 

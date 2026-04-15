@@ -231,54 +231,77 @@ async function fetchComputrabajo(keywords: string[]): Promise<JobResult[]> {
   return jobs;
 }
 
-// ---------- Indeed (HTML + JSON-LD) ----------
+// ---------- ScraperAPI helper ----------
+async function fetchWithScraperAPI(targetUrl: string): Promise<string | null> {
+  const apiKey = Deno.env.get("SCRAPER_API_KEY");
+  if (!apiKey) {
+    console.error("SCRAPER_API_KEY not configured");
+    return null;
+  }
+  try {
+    const scraperUrl = `https://api.scraperapi.com?api_key=${apiKey}&url=${encodeURIComponent(targetUrl)}&render=true&country_code=cl`;
+    const resp = await fetch(scraperUrl, { headers: { Accept: "text/html" } });
+    if (!resp.ok) {
+      console.error(`ScraperAPI error ${resp.status} for ${targetUrl}`);
+      return null;
+    }
+    return await resp.text();
+  } catch (e) {
+    console.error(`ScraperAPI fetch error for ${targetUrl}:`, e);
+    return null;
+  }
+}
+
+function parseJobPostingsFromHtml(html: string, source: string, baseUrl: string, seenUrls: Set<string>): JobResult[] {
+  const jobs: JobResult[] = [];
+
+  // 1. JSON-LD
+  const jsonLdPattern = /<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi;
+  let jsonMatch;
+  while ((jsonMatch = jsonLdPattern.exec(html)) !== null) {
+    try {
+      const ld = JSON.parse(jsonMatch[1]);
+      const items = ld.itemListElement || (Array.isArray(ld) ? ld : [ld]);
+      for (const item of items) {
+        const posting = item.item || item;
+        if (posting["@type"] !== "JobPosting" && !posting.title) continue;
+        const jobUrl = posting.url || "";
+        if (!jobUrl || seenUrls.has(jobUrl)) continue;
+        seenUrls.add(jobUrl);
+        jobs.push({
+          title: posting.title || "Sin título",
+          company: posting.hiringOrganization?.name || `Ver en ${source}`,
+          location: posting.jobLocation?.address?.addressLocality || "Chile",
+          modality: "hybrid",
+          url: jobUrl,
+          published_at: posting.datePosted || null,
+          source,
+          description_snippet: (posting.description || "").substring(0, 300).replace(/<[^>]*>/g, ""),
+        });
+      }
+    } catch { /* skip */ }
+  }
+
+  return jobs;
+}
+
+// ---------- Indeed (via ScraperAPI) ----------
 async function fetchIndeed(keywords: string[]): Promise<JobResult[]> {
   const jobs: JobResult[] = [];
   const seenUrls = new Set<string>();
 
-  for (const keyword of keywords.slice(0, 3)) {
+  for (const keyword of keywords.slice(0, 2)) {
     try {
-      const url = `https://cl.indeed.com/jobs?q=${encodeURIComponent(keyword)}&l=Chile&limit=10`;
-      const resp = await fetch(url, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-          Accept: "text/html,application/xhtml+xml",
-          "Accept-Language": "es-CL,es;q=0.9",
-        },
-      });
-      if (!resp.ok) continue;
-      const html = await resp.text();
+      const targetUrl = `https://cl.indeed.com/jobs?q=${encodeURIComponent(keyword)}&l=Chile&limit=10`;
+      const html = await fetchWithScraperAPI(targetUrl);
+      if (!html) continue;
 
-      // Try JSON-LD structured data
-      const jsonLdPattern = /<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi;
-      let jsonMatch;
-      while ((jsonMatch = jsonLdPattern.exec(html)) !== null) {
-        try {
-          const ld = JSON.parse(jsonMatch[1]);
-          const items = ld.itemListElement || (Array.isArray(ld) ? ld : [ld]);
-          for (const item of items) {
-            const posting = item.item || item;
-            if (posting["@type"] !== "JobPosting" && !posting.title) continue;
-            const jobUrl = posting.url || "";
-            if (!jobUrl || seenUrls.has(jobUrl)) continue;
-            seenUrls.add(jobUrl);
-            jobs.push({
-              title: posting.title || "Sin título",
-              company: posting.hiringOrganization?.name || "Ver en Indeed",
-              location: posting.jobLocation?.address?.addressLocality || "Chile",
-              modality: "hybrid",
-              url: jobUrl,
-              published_at: posting.datePosted || null,
-              source: "Indeed",
-              description_snippet: (posting.description || "").substring(0, 300).replace(/<[^>]*>/g, ""),
-            });
-          }
-        } catch { /* skip */ }
-      }
+      // JSON-LD first
+      const ldJobs = parseJobPostingsFromHtml(html, "Indeed", "https://cl.indeed.com", seenUrls);
+      jobs.push(...ldJobs);
 
-      // Fallback: parse mosaic data or job cards
-      if (jobs.filter(j => j.source === "Indeed").length === 0) {
-        // Indeed embeds job data in window.mosaic.providerData
+      // Fallback: mosaic provider data
+      if (ldJobs.length === 0) {
         const mosaicPattern = /window\.mosaic\.providerData\["mosaic-provider-jobcards"\]\s*=\s*(\{[\s\S]*?\});/;
         const mosaicMatch = mosaicPattern.exec(html);
         if (mosaicMatch) {
@@ -302,8 +325,10 @@ async function fetchIndeed(keywords: string[]): Promise<JobResult[]> {
             }
           } catch { /* skip */ }
         }
+      }
 
-        // Last resort: title pattern
+      // Fallback: title links
+      if (jobs.filter(j => j.source === "Indeed").length === 0) {
         const titlePattern = /<h2[^>]*class="[^"]*jobTitle[^"]*"[^>]*>[\s\S]*?<a[^>]*href="([^"]*)"[^>]*>[\s\S]*?<span[^>]*>(.*?)<\/span>/gi;
         let m;
         while ((m = titlePattern.exec(html)) !== null) {
@@ -329,84 +354,50 @@ async function fetchIndeed(keywords: string[]): Promise<JobResult[]> {
   return jobs;
 }
 
-// ---------- Laborum (HTML + JSON-LD) ----------
+// ---------- Laborum (via ScraperAPI) ----------
 async function fetchLaborum(keywords: string[]): Promise<JobResult[]> {
   const jobs: JobResult[] = [];
   const seenUrls = new Set<string>();
 
-  for (const keyword of keywords.slice(0, 3)) {
+  for (const keyword of keywords.slice(0, 2)) {
     try {
-      const searchUrl = `https://www.laborum.cl/empleos-busqueda-${encodeURIComponent(keyword.replace(/\s+/g, "-"))}.html`;
-      const resp = await fetch(searchUrl, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-          Accept: "text/html,application/xhtml+xml",
-          "Accept-Language": "es-CL,es;q=0.9",
-        },
-      });
-      if (!resp.ok) continue;
-      const html = await resp.text();
+      const targetUrl = `https://www.laborum.cl/empleos-busqueda-${encodeURIComponent(keyword.replace(/\s+/g, "-"))}.html`;
+      const html = await fetchWithScraperAPI(targetUrl);
+      if (!html) continue;
 
-      // Try JSON-LD
-      const jsonLdPattern = /<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi;
-      let jsonMatch;
-      while ((jsonMatch = jsonLdPattern.exec(html)) !== null) {
-        try {
-          const ld = JSON.parse(jsonMatch[1]);
-          const items = ld.itemListElement || (Array.isArray(ld) ? ld : [ld]);
-          for (const item of items) {
-            const posting = item.item || item;
-            if (posting["@type"] !== "JobPosting" && !posting.title) continue;
-            const jobUrl = posting.url || "";
-            if (!jobUrl || seenUrls.has(jobUrl)) continue;
-            seenUrls.add(jobUrl);
-            jobs.push({
-              title: posting.title || "Sin título",
-              company: posting.hiringOrganization?.name || "Ver en Laborum",
-              location: posting.jobLocation?.address?.addressLocality || "Chile",
-              modality: "hybrid",
-              url: jobUrl,
-              published_at: posting.datePosted || null,
-              source: "Laborum",
-              description_snippet: (posting.description || "").substring(0, 300).replace(/<[^>]*>/g, ""),
-            });
-          }
-        } catch { /* skip */ }
-      }
+      // JSON-LD first
+      const ldJobs = parseJobPostingsFromHtml(html, "Laborum", "https://www.laborum.cl", seenUrls);
+      jobs.push(...ldJobs);
 
-      // Fallback: Laborum uses Bumeran platform, try their API
-      if (jobs.filter(j => j.source === "Laborum").length === 0) {
+      // Fallback: Laborum/Bumeran API
+      if (ldJobs.length === 0) {
         try {
-          const apiUrl = `https://www.laborum.cl/api/avisos?q=${encodeURIComponent(keyword)}&limit=10`;
-          const apiResp = await fetch(apiUrl, {
-            headers: {
-              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-              Accept: "application/json",
-            },
-          });
-          if (apiResp.ok) {
-            const apiData = await apiResp.json();
-            const avisos = apiData.content || apiData.avisos || (Array.isArray(apiData) ? apiData : []);
-            for (const aviso of avisos) {
-              const jobUrl = aviso.url || aviso.link || "";
-              if (!jobUrl || seenUrls.has(jobUrl)) continue;
-              seenUrls.add(jobUrl);
-              jobs.push({
-                title: aviso.titulo || aviso.title || "Sin título",
-                company: aviso.empresa || aviso.company || "Ver en Laborum",
-                location: aviso.ubicacion || aviso.location || "Chile",
-                modality: "hybrid",
-                url: jobUrl.startsWith("http") ? jobUrl : `https://www.laborum.cl${jobUrl}`,
-                published_at: aviso.fechaPublicacion || null,
-                source: "Laborum",
-                description_snippet: "",
-              });
-            }
+          const apiHtml = await fetchWithScraperAPI(`https://www.laborum.cl/api/avisos?q=${encodeURIComponent(keyword)}&limit=10`);
+          if (apiHtml) {
+            try {
+              const apiData = JSON.parse(apiHtml);
+              const avisos = apiData.content || apiData.avisos || (Array.isArray(apiData) ? apiData : []);
+              for (const aviso of avisos) {
+                const jobUrl = aviso.url || aviso.link || "";
+                if (!jobUrl || seenUrls.has(jobUrl)) continue;
+                seenUrls.add(jobUrl);
+                jobs.push({
+                  title: aviso.titulo || aviso.title || "Sin título",
+                  company: aviso.empresa || aviso.company || "Ver en Laborum",
+                  location: aviso.ubicacion || aviso.location || "Chile",
+                  modality: "hybrid",
+                  url: jobUrl.startsWith("http") ? jobUrl : `https://www.laborum.cl${jobUrl}`,
+                  published_at: aviso.fechaPublicacion || null,
+                  source: "Laborum",
+                  description_snippet: "",
+                });
+              }
+            } catch { /* not JSON */ }
           }
         } catch { /* skip API fallback */ }
       }
 
-      // Last resort: link pattern
+      // Last resort: link patterns
       if (jobs.filter(j => j.source === "Laborum").length === 0) {
         const pattern = /<a[^>]*href="(\/empleos\/[^"]+)"[^>]*>[\s\S]*?(?:<h2[^>]*>|<span[^>]*class="[^"]*titulo[^"]*"[^>]*>)(.*?)(?:<\/h2>|<\/span>)/gi;
         let m;

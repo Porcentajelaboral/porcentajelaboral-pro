@@ -18,7 +18,7 @@ interface JobResult {
   description_snippet: string;
 }
 
-// ---------- GetOnBoard ----------
+// ---------- GetOnBoard (API oficial) ----------
 async function fetchGetOnBoard(keywords: string[]): Promise<JobResult[]> {
   const jobs: JobResult[] = [];
   const seenIds = new Set<string>();
@@ -53,39 +53,101 @@ async function fetchGetOnBoard(keywords: string[]): Promise<JobResult[]> {
   return jobs;
 }
 
-// ---------- Trabajando.com (scrape search page) ----------
+// ---------- Trabajando.com (JSON API) ----------
 async function fetchTrabajando(keywords: string[]): Promise<JobResult[]> {
   const jobs: JobResult[] = [];
   const seenUrls = new Set<string>();
 
   for (const keyword of keywords.slice(0, 3)) {
     try {
-      const url = `https://www.trabajando.cl/trabajo-empleo/q-${encodeURIComponent(keyword)}`;
+      // Try their search API endpoint
+      const url = `https://www.trabajando.cl/api/ofertas/buscar?texto=${encodeURIComponent(keyword)}&pais=1&limit=10`;
       const resp = await fetch(url, {
         headers: {
-          "User-Agent": "Mozilla/5.0 (compatible; PorcentajeLaboralBot/1.0)",
-          Accept: "text/html",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          Accept: "application/json, text/html, */*",
+          "Accept-Language": "es-CL,es;q=0.9",
         },
       });
-      if (!resp.ok) continue;
-      const html = await resp.text();
+      if (!resp.ok) {
+        // Fallback: try HTML page and extract JSON-LD or structured data
+        const htmlResp = await fetch(`https://www.trabajando.cl/trabajo-empleo/q-${encodeURIComponent(keyword)}`, {
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            Accept: "text/html",
+          },
+        });
+        if (!htmlResp.ok) continue;
+        const html = await htmlResp.text();
+        
+        // Try JSON-LD
+        const jsonLdPattern = /<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi;
+        let jsonMatch;
+        while ((jsonMatch = jsonLdPattern.exec(html)) !== null) {
+          try {
+            const ld = JSON.parse(jsonMatch[1]);
+            const items = ld.itemListElement || (Array.isArray(ld) ? ld : [ld]);
+            for (const item of items) {
+              const posting = item.item || item;
+              if (posting["@type"] !== "JobPosting" && !posting.title) continue;
+              const jobUrl = posting.url || posting.sameAs || "";
+              if (!jobUrl || seenUrls.has(jobUrl)) continue;
+              seenUrls.add(jobUrl);
+              jobs.push({
+                title: posting.title || "Sin título",
+                company: posting.hiringOrganization?.name || "Empresa",
+                location: posting.jobLocation?.address?.addressLocality || "Chile",
+                modality: "hybrid",
+                url: jobUrl,
+                published_at: posting.datePosted || null,
+                source: "Trabajando",
+                description_snippet: (posting.description || "").substring(0, 300).replace(/<[^>]*>/g, ""),
+              });
+            }
+          } catch { /* skip invalid JSON-LD */ }
+        }
+        
+        // Fallback: broad regex for links with job titles
+        if (jobs.filter(j => j.source === "Trabajando").length === 0) {
+          const titlePattern = /<a[^>]*href="([^"]*(?:empleo|oferta|trabajo)[^"]*)"[^>]*>\s*(?:<[^>]*>)*\s*([^<]{5,80})/gi;
+          let m;
+          while ((m = titlePattern.exec(html)) !== null && jobs.length < 10) {
+            const href = m[1].startsWith("http") ? m[1] : `https://www.trabajando.cl${m[1]}`;
+            if (seenUrls.has(href)) continue;
+            seenUrls.add(href);
+            const title = m[2].replace(/<[^>]*>/g, "").trim();
+            if (title.length < 5) continue;
+            jobs.push({
+              title,
+              company: "Ver en Trabajando",
+              location: "Chile",
+              modality: "hybrid",
+              url: href,
+              published_at: null,
+              source: "Trabajando",
+              description_snippet: "",
+            });
+          }
+        }
+        continue;
+      }
 
-      // Parse job listings from HTML using regex patterns
-      const jobPattern = /<a[^>]*href="(\/empleo\/[^"]+)"[^>]*>[\s\S]*?<h2[^>]*>(.*?)<\/h2>[\s\S]*?<span[^>]*class="[^"]*company[^"]*"[^>]*>(.*?)<\/span>/gi;
-      let match;
-      while ((match = jobPattern.exec(html)) !== null) {
-        const jobUrl = `https://www.trabajando.cl${match[1]}`;
-        if (seenUrls.has(jobUrl)) continue;
+      // JSON API success path
+      const data = await resp.json();
+      const ofertas = data.ofertas || data.data || data.results || (Array.isArray(data) ? data : []);
+      for (const oferta of ofertas) {
+        const jobUrl = oferta.url || oferta.link || "";
+        if (!jobUrl || seenUrls.has(jobUrl)) continue;
         seenUrls.add(jobUrl);
         jobs.push({
-          title: match[2].replace(/<[^>]*>/g, "").trim(),
-          company: match[3].replace(/<[^>]*>/g, "").trim(),
-          location: "Chile",
+          title: oferta.titulo || oferta.title || "Sin título",
+          company: oferta.empresa || oferta.company || "Empresa",
+          location: oferta.ubicacion || oferta.location || "Chile",
           modality: "hybrid",
-          url: jobUrl,
-          published_at: null,
+          url: jobUrl.startsWith("http") ? jobUrl : `https://www.trabajando.cl${jobUrl}`,
+          published_at: oferta.fecha || null,
           source: "Trabajando",
-          description_snippet: "",
+          description_snippet: (oferta.descripcion || oferta.description || "").substring(0, 300),
         });
       }
     } catch (e) {
@@ -95,42 +157,72 @@ async function fetchTrabajando(keywords: string[]): Promise<JobResult[]> {
   return jobs;
 }
 
-// ---------- Computrabajo ----------
+// ---------- Computrabajo (HTML + JSON-LD) ----------
 async function fetchComputrabajo(keywords: string[]): Promise<JobResult[]> {
   const jobs: JobResult[] = [];
   const seenUrls = new Set<string>();
 
   for (const keyword of keywords.slice(0, 3)) {
     try {
-      const url = `https://www.computrabajo.cl/trabajo-de-${encodeURIComponent(keyword.replace(/\s+/g, "-"))}`;
-      const resp = await fetch(url, {
+      const searchUrl = `https://www.computrabajo.cl/trabajo-de-${encodeURIComponent(keyword.toLowerCase().replace(/\s+/g, "-"))}`;
+      const resp = await fetch(searchUrl, {
         headers: {
-          "User-Agent": "Mozilla/5.0 (compatible; PorcentajeLaboralBot/1.0)",
-          Accept: "text/html",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          Accept: "text/html,application/xhtml+xml",
+          "Accept-Language": "es-CL,es;q=0.9",
         },
       });
       if (!resp.ok) continue;
       const html = await resp.text();
 
-      // Parse listings
-      const listingPattern = /<a[^>]*href="(\/ofertas-de-trabajo\/[^"]+)"[^>]*class="[^"]*js-o-link[^"]*"[^>]*>([\s\S]*?)<\/a>/gi;
-      let match;
-      while ((match = listingPattern.exec(html)) !== null) {
-        const jobUrl = `https://www.computrabajo.cl${match[1]}`;
-        if (seenUrls.has(jobUrl)) continue;
-        seenUrls.add(jobUrl);
-        const title = match[2].replace(/<[^>]*>/g, "").trim();
-        if (!title) continue;
-        jobs.push({
-          title,
-          company: "Ver en Computrabajo",
-          location: "Chile",
-          modality: "hybrid",
-          url: jobUrl,
-          published_at: null,
-          source: "Computrabajo",
-          description_snippet: "",
-        });
+      // Try JSON-LD
+      const jsonLdPattern = /<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi;
+      let jsonMatch;
+      while ((jsonMatch = jsonLdPattern.exec(html)) !== null) {
+        try {
+          const ld = JSON.parse(jsonMatch[1]);
+          const items = ld.itemListElement || (Array.isArray(ld) ? ld : [ld]);
+          for (const item of items) {
+            const posting = item.item || item;
+            if (posting["@type"] !== "JobPosting" && !posting.title) continue;
+            const jobUrl = posting.url || "";
+            if (!jobUrl || seenUrls.has(jobUrl)) continue;
+            seenUrls.add(jobUrl);
+            jobs.push({
+              title: posting.title || "Sin título",
+              company: posting.hiringOrganization?.name || "Ver en Computrabajo",
+              location: posting.jobLocation?.address?.addressLocality || "Chile",
+              modality: "hybrid",
+              url: jobUrl,
+              published_at: posting.datePosted || null,
+              source: "Computrabajo",
+              description_snippet: (posting.description || "").substring(0, 300).replace(/<[^>]*>/g, ""),
+            });
+          }
+        } catch { /* skip */ }
+      }
+
+      // Fallback: parse title links
+      if (jobs.filter(j => j.source === "Computrabajo").length === 0) {
+        const pattern = /<a[^>]*href="(\/ofertas-de-trabajo\/[^"]+)"[^>]*>\s*(?:<[^>]*>)*\s*([^<]{5,100})/gi;
+        let m;
+        while ((m = pattern.exec(html)) !== null) {
+          const jobUrl = `https://www.computrabajo.cl${m[1]}`;
+          if (seenUrls.has(jobUrl)) continue;
+          seenUrls.add(jobUrl);
+          const title = m[2].replace(/<[^>]*>/g, "").trim();
+          if (title.length < 5) continue;
+          jobs.push({
+            title,
+            company: "Ver en Computrabajo",
+            location: "Chile",
+            modality: "hybrid",
+            url: jobUrl,
+            published_at: null,
+            source: "Computrabajo",
+            description_snippet: "",
+          });
+        }
       }
     } catch (e) {
       console.error(`Computrabajo error for "${keyword}":`, e);
@@ -139,7 +231,7 @@ async function fetchComputrabajo(keywords: string[]): Promise<JobResult[]> {
   return jobs;
 }
 
-// ---------- Indeed ----------
+// ---------- Indeed (HTML + JSON-LD) ----------
 async function fetchIndeed(keywords: string[]): Promise<JobResult[]> {
   const jobs: JobResult[] = [];
   const seenUrls = new Set<string>();
@@ -149,30 +241,86 @@ async function fetchIndeed(keywords: string[]): Promise<JobResult[]> {
       const url = `https://cl.indeed.com/jobs?q=${encodeURIComponent(keyword)}&l=Chile&limit=10`;
       const resp = await fetch(url, {
         headers: {
-          "User-Agent": "Mozilla/5.0 (compatible; PorcentajeLaboralBot/1.0)",
-          Accept: "text/html",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          Accept: "text/html,application/xhtml+xml",
+          "Accept-Language": "es-CL,es;q=0.9",
         },
       });
       if (!resp.ok) continue;
       const html = await resp.text();
 
-      // Parse job cards
-      const cardPattern = /<a[^>]*id="job_([^"]+)"[^>]*href="([^"]*)"[^>]*>[\s\S]*?<span[^>]*>(.*?)<\/span>/gi;
-      let match;
-      while ((match = cardPattern.exec(html)) !== null) {
-        const jobUrl = match[2].startsWith("http") ? match[2] : `https://cl.indeed.com${match[2]}`;
-        if (seenUrls.has(jobUrl)) continue;
-        seenUrls.add(jobUrl);
-        jobs.push({
-          title: match[3].replace(/<[^>]*>/g, "").trim(),
-          company: "Ver en Indeed",
-          location: "Chile",
-          modality: "hybrid",
-          url: jobUrl,
-          published_at: null,
-          source: "Indeed",
-          description_snippet: "",
-        });
+      // Try JSON-LD structured data
+      const jsonLdPattern = /<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi;
+      let jsonMatch;
+      while ((jsonMatch = jsonLdPattern.exec(html)) !== null) {
+        try {
+          const ld = JSON.parse(jsonMatch[1]);
+          const items = ld.itemListElement || (Array.isArray(ld) ? ld : [ld]);
+          for (const item of items) {
+            const posting = item.item || item;
+            if (posting["@type"] !== "JobPosting" && !posting.title) continue;
+            const jobUrl = posting.url || "";
+            if (!jobUrl || seenUrls.has(jobUrl)) continue;
+            seenUrls.add(jobUrl);
+            jobs.push({
+              title: posting.title || "Sin título",
+              company: posting.hiringOrganization?.name || "Ver en Indeed",
+              location: posting.jobLocation?.address?.addressLocality || "Chile",
+              modality: "hybrid",
+              url: jobUrl,
+              published_at: posting.datePosted || null,
+              source: "Indeed",
+              description_snippet: (posting.description || "").substring(0, 300).replace(/<[^>]*>/g, ""),
+            });
+          }
+        } catch { /* skip */ }
+      }
+
+      // Fallback: parse mosaic data or job cards
+      if (jobs.filter(j => j.source === "Indeed").length === 0) {
+        // Indeed embeds job data in window.mosaic.providerData
+        const mosaicPattern = /window\.mosaic\.providerData\["mosaic-provider-jobcards"\]\s*=\s*(\{[\s\S]*?\});/;
+        const mosaicMatch = mosaicPattern.exec(html);
+        if (mosaicMatch) {
+          try {
+            const mosaicData = JSON.parse(mosaicMatch[1]);
+            const results = mosaicData.metaData?.mosaicProviderJobCardsModel?.results || [];
+            for (const r of results) {
+              const jobUrl = `https://cl.indeed.com/viewjob?jk=${r.jobkey}`;
+              if (seenUrls.has(jobUrl)) continue;
+              seenUrls.add(jobUrl);
+              jobs.push({
+                title: r.title || "Sin título",
+                company: r.company || "Ver en Indeed",
+                location: r.formattedLocation || "Chile",
+                modality: "hybrid",
+                url: jobUrl,
+                published_at: null,
+                source: "Indeed",
+                description_snippet: (r.snippet || "").substring(0, 300).replace(/<[^>]*>/g, ""),
+              });
+            }
+          } catch { /* skip */ }
+        }
+
+        // Last resort: title pattern
+        const titlePattern = /<h2[^>]*class="[^"]*jobTitle[^"]*"[^>]*>[\s\S]*?<a[^>]*href="([^"]*)"[^>]*>[\s\S]*?<span[^>]*>(.*?)<\/span>/gi;
+        let m;
+        while ((m = titlePattern.exec(html)) !== null) {
+          const href = m[1].startsWith("http") ? m[1] : `https://cl.indeed.com${m[1]}`;
+          if (seenUrls.has(href)) continue;
+          seenUrls.add(href);
+          jobs.push({
+            title: m[2].replace(/<[^>]*>/g, "").trim(),
+            company: "Ver en Indeed",
+            location: "Chile",
+            modality: "hybrid",
+            url: href,
+            published_at: null,
+            source: "Indeed",
+            description_snippet: "",
+          });
+        }
       }
     } catch (e) {
       console.error(`Indeed error for "${keyword}":`, e);
@@ -181,39 +329,104 @@ async function fetchIndeed(keywords: string[]): Promise<JobResult[]> {
   return jobs;
 }
 
-// ---------- Laborum ----------
+// ---------- Laborum (HTML + JSON-LD) ----------
 async function fetchLaborum(keywords: string[]): Promise<JobResult[]> {
   const jobs: JobResult[] = [];
   const seenUrls = new Set<string>();
 
   for (const keyword of keywords.slice(0, 3)) {
     try {
-      const url = `https://www.laborum.cl/empleos-busqueda-${encodeURIComponent(keyword.replace(/\s+/g, "-"))}.html`;
-      const resp = await fetch(url, {
+      const searchUrl = `https://www.laborum.cl/empleos-busqueda-${encodeURIComponent(keyword.replace(/\s+/g, "-"))}.html`;
+      const resp = await fetch(searchUrl, {
         headers: {
-          "User-Agent": "Mozilla/5.0 (compatible; PorcentajeLaboralBot/1.0)",
-          Accept: "text/html",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          Accept: "text/html,application/xhtml+xml",
+          "Accept-Language": "es-CL,es;q=0.9",
         },
       });
       if (!resp.ok) continue;
       const html = await resp.text();
 
-      const listingPattern = /<a[^>]*href="(\/empleos\/[^"]+)"[^>]*>[\s\S]*?<h2[^>]*>(.*?)<\/h2>/gi;
-      let match;
-      while ((match = listingPattern.exec(html)) !== null) {
-        const jobUrl = `https://www.laborum.cl${match[1]}`;
-        if (seenUrls.has(jobUrl)) continue;
-        seenUrls.add(jobUrl);
-        jobs.push({
-          title: match[2].replace(/<[^>]*>/g, "").trim(),
-          company: "Ver en Laborum",
-          location: "Chile",
-          modality: "hybrid",
-          url: jobUrl,
-          published_at: null,
-          source: "Laborum",
-          description_snippet: "",
-        });
+      // Try JSON-LD
+      const jsonLdPattern = /<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi;
+      let jsonMatch;
+      while ((jsonMatch = jsonLdPattern.exec(html)) !== null) {
+        try {
+          const ld = JSON.parse(jsonMatch[1]);
+          const items = ld.itemListElement || (Array.isArray(ld) ? ld : [ld]);
+          for (const item of items) {
+            const posting = item.item || item;
+            if (posting["@type"] !== "JobPosting" && !posting.title) continue;
+            const jobUrl = posting.url || "";
+            if (!jobUrl || seenUrls.has(jobUrl)) continue;
+            seenUrls.add(jobUrl);
+            jobs.push({
+              title: posting.title || "Sin título",
+              company: posting.hiringOrganization?.name || "Ver en Laborum",
+              location: posting.jobLocation?.address?.addressLocality || "Chile",
+              modality: "hybrid",
+              url: jobUrl,
+              published_at: posting.datePosted || null,
+              source: "Laborum",
+              description_snippet: (posting.description || "").substring(0, 300).replace(/<[^>]*>/g, ""),
+            });
+          }
+        } catch { /* skip */ }
+      }
+
+      // Fallback: Laborum uses Bumeran platform, try their API
+      if (jobs.filter(j => j.source === "Laborum").length === 0) {
+        try {
+          const apiUrl = `https://www.laborum.cl/api/avisos?q=${encodeURIComponent(keyword)}&limit=10`;
+          const apiResp = await fetch(apiUrl, {
+            headers: {
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+              Accept: "application/json",
+            },
+          });
+          if (apiResp.ok) {
+            const apiData = await apiResp.json();
+            const avisos = apiData.content || apiData.avisos || (Array.isArray(apiData) ? apiData : []);
+            for (const aviso of avisos) {
+              const jobUrl = aviso.url || aviso.link || "";
+              if (!jobUrl || seenUrls.has(jobUrl)) continue;
+              seenUrls.add(jobUrl);
+              jobs.push({
+                title: aviso.titulo || aviso.title || "Sin título",
+                company: aviso.empresa || aviso.company || "Ver en Laborum",
+                location: aviso.ubicacion || aviso.location || "Chile",
+                modality: "hybrid",
+                url: jobUrl.startsWith("http") ? jobUrl : `https://www.laborum.cl${jobUrl}`,
+                published_at: aviso.fechaPublicacion || null,
+                source: "Laborum",
+                description_snippet: "",
+              });
+            }
+          }
+        } catch { /* skip API fallback */ }
+      }
+
+      // Last resort: link pattern
+      if (jobs.filter(j => j.source === "Laborum").length === 0) {
+        const pattern = /<a[^>]*href="(\/empleos\/[^"]+)"[^>]*>[\s\S]*?(?:<h2[^>]*>|<span[^>]*class="[^"]*titulo[^"]*"[^>]*>)(.*?)(?:<\/h2>|<\/span>)/gi;
+        let m;
+        while ((m = pattern.exec(html)) !== null) {
+          const jobUrl = `https://www.laborum.cl${m[1]}`;
+          if (seenUrls.has(jobUrl)) continue;
+          seenUrls.add(jobUrl);
+          const title = m[2].replace(/<[^>]*>/g, "").trim();
+          if (title.length < 5) continue;
+          jobs.push({
+            title,
+            company: "Ver en Laborum",
+            location: "Chile",
+            modality: "hybrid",
+            url: jobUrl,
+            published_at: null,
+            source: "Laborum",
+            description_snippet: "",
+          });
+        }
       }
     } catch (e) {
       console.error(`Laborum error for "${keyword}":`, e);
@@ -245,7 +458,6 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    // Fix: use getUser instead of getClaims
     const { data: userData, error: userError } = await supabase.auth.getUser();
     if (userError || !userData?.user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -255,7 +467,6 @@ serve(async (req) => {
     }
     const userId = userData.user.id;
 
-    // Get user profile to check plan
     const { data: profile } = await supabase
       .from("Perfiles")
       .select("plan_tipo")
@@ -271,7 +482,6 @@ serve(async (req) => {
       });
     }
 
-    // Get last analysis
     const { data: lastAnalysis } = await supabase
       .from("analisis")
       .select("cv_texto, habilidades_match, keywords_faltan, oferta_titulo")
@@ -287,7 +497,6 @@ serve(async (req) => {
       });
     }
 
-    // Extract keywords from skills and missing keywords
     const skills = (lastAnalysis.habilidades_match || "").split(",").map((s: string) => s.trim()).filter(Boolean);
     const missingKw = (lastAnalysis.keywords_faltan || "").split(",").map((s: string) => s.trim()).filter(Boolean);
     const titleKw = (lastAnalysis.oferta_titulo || "").split(/[\s,]+/).filter((w: string) => w.length > 3);
@@ -302,7 +511,6 @@ serve(async (req) => {
 
     console.log("Searching jobs with keywords:", allKeywords);
 
-    // Fetch jobs from ALL portals in parallel
     const [getOnBoardJobs, trabajandoJobs, computrabajoJobs, indeedJobs, laborumJobs] = await Promise.all([
       fetchGetOnBoard(allKeywords),
       fetchTrabajando(allKeywords),
@@ -328,7 +536,6 @@ serve(async (req) => {
       });
     }
 
-    // Build job summaries for AI ranking
     const jobSummaries = allJobs.slice(0, 40).map((job, i) => {
       return `[${i}] Título: ${job.title} | Empresa: ${job.company} | Portal: ${job.source} | Ubicación: ${job.location} | Desc: ${job.description_snippet.substring(0, 150)}`;
     }).join("\n");
@@ -336,7 +543,6 @@ serve(async (req) => {
     const cvSummary = (lastAnalysis.cv_texto || "").substring(0, 2000);
     const maxJobs = plan === "elite" || plan === "enterprise" ? 20 : 10;
 
-    // Use AI to rank jobs
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -383,7 +589,6 @@ serve(async (req) => {
 
     const rankings = JSON.parse(content);
 
-    // Build response with ranked jobs
     const rankedJobs = rankings.slice(0, maxJobs).map((rank: any) => {
       const job = allJobs[rank.index];
       if (!job) return null;

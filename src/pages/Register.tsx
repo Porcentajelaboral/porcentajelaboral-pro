@@ -81,8 +81,11 @@ export default function Register() {
 
       if (error) throw error;
 
-      // Save security questions
-      if (data.user) {
+      // Check if email confirmation is required (no session returned)
+      const hasSession = !!data.session;
+
+      // Save security questions only if we have an active session
+      if (data.user && hasSession) {
         const { error: secError } = await supabase.from("preguntas_seguridad").insert({
           user_id: data.user.id,
           pregunta_1: pregunta1,
@@ -92,14 +95,32 @@ export default function Register() {
         });
         if (secError) {
           console.error("Error saving security questions:", secError);
-          toast.error("Cuenta creada, pero hubo un error guardando las preguntas de seguridad. Puedes configurarlas después.");
+          toast.error("Cuenta creada, pero hubo un error guardando las preguntas de seguridad.");
         }
+      } else if (data.user && !hasSession) {
+        // Store questions temporarily to save after email confirmation
+        localStorage.setItem("pending_security_questions", JSON.stringify({
+          user_id: data.user.id,
+          pregunta_1: pregunta1,
+          respuesta_1: respuesta1.trim().toLowerCase(),
+          pregunta_2: pregunta2,
+          respuesta_2: respuesta2.trim().toLowerCase(),
+        }));
       }
 
-      toast.success("¡Cuenta creada exitosamente! Revisa tu email para confirmar.");
-      navigate("/dashboard");
+      if (hasSession) {
+        toast.success("¡Cuenta creada exitosamente!");
+        navigate("/dashboard");
+      } else {
+        toast.success("¡Cuenta creada! Revisa tu correo electrónico para confirmar tu cuenta antes de iniciar sesión.", { duration: 8000 });
+        navigate("/login");
+      }
     } catch (err: any) {
-      toast.error(err.message || "Error al crear la cuenta");
+      if (err.message?.includes("already registered")) {
+        toast.error("Este correo ya está registrado. Intenta iniciar sesión.");
+      } else {
+        toast.error(err.message || "Error al crear la cuenta");
+      }
     } finally {
       setLoading(false);
     }
@@ -261,7 +282,7 @@ export default function Register() {
                 <Checkbox id="terms" checked={acceptTerms} onCheckedChange={(v) => setAcceptTerms(v === true)} className="mt-0.5" />
                 <label htmlFor="terms" className="text-sm text-muted-foreground leading-tight cursor-pointer">
                   Acepto los{" "}
-                  <Link to="/privacidad" className="text-accent hover:underline" target="_blank">Términos y Condiciones</Link>
+                  <Link to="/terminos" className="text-accent hover:underline" target="_blank">Términos y Condiciones</Link>
                   {" "}*
                 </label>
               </div>

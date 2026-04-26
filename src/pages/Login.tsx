@@ -39,14 +39,26 @@ export default function Login() {
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: result.data.email,
         password: result.data.password,
       });
       if (error) throw error;
       resetRateLimit(result.data.email);
+
+      // Look up profile to redirect by user type
+      let redirectPath = "/dashboard";
+      if (data.user) {
+        const { data: profile } = await supabase
+          .from("Perfiles")
+          .select("es_empresa")
+          .eq("user_id", data.user.id)
+          .maybeSingle();
+        if (profile?.es_empresa) redirectPath = "/empresa";
+      }
+
       toast.success("¡Bienvenido!");
-      navigate("/dashboard");
+      navigate(redirectPath);
     } catch (err: any) {
       toast.error(err.message || "Error al iniciar sesión");
     } finally {

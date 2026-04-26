@@ -51,7 +51,8 @@ export default function Register() {
     respuesta1 &&
     pregunta2 &&
     respuesta2 &&
-    pregunta1 !== pregunta2;
+    pregunta1 !== pregunta2 &&
+    (userType === "candidato" || (userType === "empresa" && empresaNombre.trim().length > 0));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

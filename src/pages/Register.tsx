@@ -114,14 +114,28 @@ export default function Register() {
         }));
       }
 
-      const redirectTo = userType === "empresa" ? "/empresa" : "/dashboard";
+      const planSeleccionado = userType === "empresa" ? planEmpresa : planCandidato;
+      const requierePago = planSeleccionado !== "gratis";
+
+      // Persist intended plan so /precios can prefill the checkout flow
+      if (requierePago) {
+        localStorage.setItem("plan_intencion", planSeleccionado);
+      }
+
+      const redirectFree = userType === "empresa" ? "/empresa" : "/dashboard";
+      const redirectPaid = `/precios?plan=${planSeleccionado}`;
 
       if (hasSession) {
         toast.success("¡Cuenta creada exitosamente!");
-        if (userType === "empresa") {
-          toast.info("Tu panel de empresa requiere plan Enterprise para publicar ofertas. Revisa los planes.", { duration: 7000 });
+        if (requierePago) {
+          toast.info(`Para activar tu plan ${planSeleccionado.toUpperCase()} completa el pago.`, { duration: 7000 });
+          navigate(redirectPaid);
+        } else {
+          if (userType === "empresa") {
+            toast.info("Tu panel de empresa requiere plan Enterprise para publicar ofertas.", { duration: 7000 });
+          }
+          navigate(redirectFree);
         }
-        navigate(redirectTo);
       } else {
         toast.success("¡Cuenta creada! Revisa tu correo electrónico para confirmar tu cuenta antes de iniciar sesión.", { duration: 8000 });
         navigate("/login");

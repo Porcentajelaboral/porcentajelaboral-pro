@@ -246,6 +246,66 @@ export default function Register() {
               </div>
             )}
 
+            {/* Plan selector */}
+            <div>
+              <Label>Plan inicial</Label>
+              <p className="mb-2 mt-0.5 text-xs text-muted-foreground">
+                Puedes empezar gratis y mejorar después, o elegir un plan pago ahora.
+              </p>
+              {userType === "candidato" ? (
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    { key: "gratis", label: "Gratis", desc: "5 análisis/mes", icon: Sparkles },
+                    { key: "premium", label: "Premium", desc: "20 + matching", icon: Zap },
+                    { key: "elite", label: "Elite", desc: "Ilimitado", icon: Crown },
+                  ] as const).map((p) => (
+                    <button
+                      key={p.key}
+                      type="button"
+                      onClick={() => setPlanCandidato(p.key)}
+                      className={`flex flex-col items-center gap-1 rounded-lg border p-3 text-center transition-all ${
+                        planCandidato === p.key
+                          ? "border-accent bg-accent/10 text-accent"
+                          : "border-border bg-background text-muted-foreground hover:border-accent/50"
+                      }`}
+                    >
+                      <p.icon className="h-4 w-4" />
+                      <span className="text-xs font-semibold">{p.label}</span>
+                      <span className="text-[10px] leading-tight">{p.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    { key: "gratis", label: "Gratis", desc: "Solo exploración", icon: Sparkles },
+                    { key: "enterprise", label: "Enterprise", desc: "Publicar ofertas", icon: Crown },
+                  ] as const).map((p) => (
+                    <button
+                      key={p.key}
+                      type="button"
+                      onClick={() => setPlanEmpresa(p.key)}
+                      className={`flex flex-col items-center gap-1 rounded-lg border p-3 text-center transition-all ${
+                        planEmpresa === p.key
+                          ? "border-accent bg-accent/10 text-accent"
+                          : "border-border bg-background text-muted-foreground hover:border-accent/50"
+                      }`}
+                    >
+                      <p.icon className="h-4 w-4" />
+                      <span className="text-xs font-semibold">{p.label}</span>
+                      <span className="text-[10px] leading-tight">{p.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {((userType === "candidato" && planCandidato !== "gratis") ||
+                (userType === "empresa" && planEmpresa !== "gratis")) && (
+                <p className="mt-2 text-xs text-accent">
+                  Tras crear tu cuenta te llevaremos a la pasarela de pago para activar el plan.
+                </p>
+              )}
+            </div>
+
             {/* Security Questions */}
             <div className="space-y-3 rounded-lg border border-accent/20 bg-accent/5 p-4">
               <div className="flex items-center gap-2 text-sm font-semibold text-accent">

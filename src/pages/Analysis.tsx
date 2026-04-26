@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { useNavigate, Link, useSearchParams } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { usePreviewPlan } from "@/hooks/usePreviewPlan";
 import { Upload, FileText, Briefcase, ArrowRight, Lock, LinkIcon, Loader2, X, Eye, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,8 +42,7 @@ async function extractTextFromPdf(file: File): Promise<string> {
 
 export default function Analysis() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const previewPlan = searchParams.get("preview_plan");
+  const { previewPlan } = usePreviewPlan();
   const { user, profile, refreshProfile } = useAuth();
   const [cvText, setCvText] = useState("");
   const [jobText, setJobText] = useState("");

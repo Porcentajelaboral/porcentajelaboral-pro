@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { BarChart3, Mail, Lock, User, Building2, ShieldCheck } from "lucide-react";
+import { BarChart3, Mail, Lock, User, Building2, ShieldCheck, Sparkles, Crown, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +18,9 @@ const SECURITY_QUESTIONS = [
   "¿Cuál es el nombre de tu escuela primaria?",
 ];
 
+type PlanCandidato = "gratis" | "premium" | "elite";
+type PlanEmpresa = "gratis" | "enterprise";
+
 export default function Register() {
   const navigate = useNavigate();
   const [name, setName] = useState("");
@@ -26,6 +29,8 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [userType, setUserType] = useState<"candidato" | "empresa">("candidato");
   const [empresaNombre, setEmpresaNombre] = useState("");
+  const [planCandidato, setPlanCandidato] = useState<PlanCandidato>("gratis");
+  const [planEmpresa, setPlanEmpresa] = useState<PlanEmpresa>("gratis");
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [acceptPrivacy, setAcceptPrivacy] = useState(false);
   const [acceptPool, setAcceptPool] = useState(false);
@@ -109,14 +114,28 @@ export default function Register() {
         }));
       }
 
-      const redirectTo = userType === "empresa" ? "/empresa" : "/dashboard";
+      const planSeleccionado = userType === "empresa" ? planEmpresa : planCandidato;
+      const requierePago = planSeleccionado !== "gratis";
+
+      // Persist intended plan so /precios can prefill the checkout flow
+      if (requierePago) {
+        localStorage.setItem("plan_intencion", planSeleccionado);
+      }
+
+      const redirectFree = userType === "empresa" ? "/empresa" : "/dashboard";
+      const redirectPaid = `/precios?plan=${planSeleccionado}`;
 
       if (hasSession) {
         toast.success("¡Cuenta creada exitosamente!");
-        if (userType === "empresa") {
-          toast.info("Tu panel de empresa requiere plan Enterprise para publicar ofertas. Revisa los planes.", { duration: 7000 });
+        if (requierePago) {
+          toast.info(`Para activar tu plan ${planSeleccionado.toUpperCase()} completa el pago.`, { duration: 7000 });
+          navigate(redirectPaid);
+        } else {
+          if (userType === "empresa") {
+            toast.info("Tu panel de empresa requiere plan Enterprise para publicar ofertas.", { duration: 7000 });
+          }
+          navigate(redirectFree);
         }
-        navigate(redirectTo);
       } else {
         toast.success("¡Cuenta creada! Revisa tu correo electrónico para confirmar tu cuenta antes de iniciar sesión.", { duration: 8000 });
         navigate("/login");
@@ -226,6 +245,66 @@ export default function Register() {
                 </p>
               </div>
             )}
+
+            {/* Plan selector */}
+            <div>
+              <Label>Plan inicial</Label>
+              <p className="mb-2 mt-0.5 text-xs text-muted-foreground">
+                Puedes empezar gratis y mejorar después, o elegir un plan pago ahora.
+              </p>
+              {userType === "candidato" ? (
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    { key: "gratis", label: "Gratis", desc: "5 análisis/mes", icon: Sparkles },
+                    { key: "premium", label: "Premium", desc: "20 + matching", icon: Zap },
+                    { key: "elite", label: "Elite", desc: "Ilimitado", icon: Crown },
+                  ] as const).map((p) => (
+                    <button
+                      key={p.key}
+                      type="button"
+                      onClick={() => setPlanCandidato(p.key)}
+                      className={`flex flex-col items-center gap-1 rounded-lg border p-3 text-center transition-all ${
+                        planCandidato === p.key
+                          ? "border-accent bg-accent/10 text-accent"
+                          : "border-border bg-background text-muted-foreground hover:border-accent/50"
+                      }`}
+                    >
+                      <p.icon className="h-4 w-4" />
+                      <span className="text-xs font-semibold">{p.label}</span>
+                      <span className="text-[10px] leading-tight">{p.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    { key: "gratis", label: "Gratis", desc: "Solo exploración", icon: Sparkles },
+                    { key: "enterprise", label: "Enterprise", desc: "Publicar ofertas", icon: Crown },
+                  ] as const).map((p) => (
+                    <button
+                      key={p.key}
+                      type="button"
+                      onClick={() => setPlanEmpresa(p.key)}
+                      className={`flex flex-col items-center gap-1 rounded-lg border p-3 text-center transition-all ${
+                        planEmpresa === p.key
+                          ? "border-accent bg-accent/10 text-accent"
+                          : "border-border bg-background text-muted-foreground hover:border-accent/50"
+                      }`}
+                    >
+                      <p.icon className="h-4 w-4" />
+                      <span className="text-xs font-semibold">{p.label}</span>
+                      <span className="text-[10px] leading-tight">{p.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {((userType === "candidato" && planCandidato !== "gratis") ||
+                (userType === "empresa" && planEmpresa !== "gratis")) && (
+                <p className="mt-2 text-xs text-accent">
+                  Tras crear tu cuenta te llevaremos a la pasarela de pago para activar el plan.
+                </p>
+              )}
+            </div>
 
             {/* Security Questions */}
             <div className="space-y-3 rounded-lg border border-accent/20 bg-accent/5 p-4">

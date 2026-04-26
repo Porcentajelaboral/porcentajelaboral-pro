@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Upload, Clock, TrendingUp, FileText, ArrowRight, Zap, Briefcase, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { usePreviewPlan } from "@/hooks/usePreviewPlan";
 
 const PLAN_LIMITS: Record<string, number> = { gratis: 5, premium: 20, elite: 999999, enterprise: 999999 };
 
@@ -25,8 +26,7 @@ const MOCK_RECENT: RecentAnalysis[] = [
 
 export default function Dashboard() {
   const { user, profile } = useAuth();
-  const [searchParams] = useSearchParams();
-  const previewPlan = searchParams.get("preview_plan");
+  const { previewPlan } = usePreviewPlan();
   const [recent, setRecent] = useState<RecentAnalysis[]>([]);
 
   const plan = previewPlan || profile?.plan_tipo || "gratis";

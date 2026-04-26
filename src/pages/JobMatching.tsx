@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useSearchParams, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
+import { usePreviewPlan } from "@/hooks/usePreviewPlan";
 import { motion } from "framer-motion";
 import { Briefcase, MapPin, ExternalLink, Lock, Loader2, SearchX, Sparkles, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -32,8 +33,7 @@ const MOCK_JOBS: MatchedJob[] = [
 
 export default function JobMatching() {
   const { user, profile, loading: authLoading } = useAuth();
-  const [searchParams] = useSearchParams();
-  const previewPlan = searchParams.get("preview_plan");
+  const { previewPlan } = usePreviewPlan();
   const [jobs, setJobs] = useState<MatchedJob[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);

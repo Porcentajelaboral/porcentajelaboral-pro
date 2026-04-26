@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { usePreviewPlan } from "@/hooks/usePreviewPlan";
 import { motion } from "framer-motion";
 import { CheckCircle, XCircle, AlertTriangle, ArrowLeft, Download, Lightbulb, Lock, HelpCircle, FileEdit, ExternalLink, Copy, MapPin, Building2, Monitor, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -76,7 +77,7 @@ function NivelBadge({ nivel }: { nivel: string }) {
 export default function Results() {
   const [searchParams] = useSearchParams();
   const analysisId = searchParams.get("id");
-  const previewPlan = searchParams.get("preview_plan");
+  const { previewPlan } = usePreviewPlan();
   const { profile } = useAuth();
   const [data, setData] = useState<AnalysisData | null>(null);
   const [loading, setLoading] = useState(true);

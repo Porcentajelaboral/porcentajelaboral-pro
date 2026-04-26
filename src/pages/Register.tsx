@@ -109,9 +109,14 @@ export default function Register() {
         }));
       }
 
+      const redirectTo = userType === "empresa" ? "/empresa" : "/dashboard";
+
       if (hasSession) {
         toast.success("¡Cuenta creada exitosamente!");
-        navigate("/dashboard");
+        if (userType === "empresa") {
+          toast.info("Tu panel de empresa requiere plan Enterprise para publicar ofertas. Revisa los planes.", { duration: 7000 });
+        }
+        navigate(redirectTo);
       } else {
         toast.success("¡Cuenta creada! Revisa tu correo electrónico para confirmar tu cuenta antes de iniciar sesión.", { duration: 8000 });
         navigate("/login");

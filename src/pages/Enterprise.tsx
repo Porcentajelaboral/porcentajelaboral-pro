@@ -61,6 +61,9 @@ export default function Enterprise() {
     { label: "Match promedio", value: `${avgMatch}%`, icon: TrendingUp, color: "text-accent" },
   ];
 
+  const planEmpresa = profile?.plan_tipo || "gratis";
+  const tieneEnterprise = planEmpresa === "enterprise";
+
   return (
     <div className="container py-8">
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -70,10 +73,54 @@ export default function Enterprise() {
           </h1>
           <p className="text-muted-foreground">{profile?.empresa_nombre || "Mi Empresa"}</p>
         </div>
-        <Button className="bg-accent text-accent-foreground hover:bg-accent/90 gap-2" onClick={() => toast.info("Próximamente: publicar ofertas")}>
+        <Button
+          className="bg-accent text-accent-foreground hover:bg-accent/90 gap-2"
+          onClick={() => {
+            if (!tieneEnterprise) {
+              toast.error("Necesitas el plan Enterprise para publicar ofertas");
+              navigate("/precios");
+              return;
+            }
+            toast.info("Próximamente: publicar ofertas");
+          }}
+        >
           <Plus className="h-4 w-4" /> Publicar nueva oferta
         </Button>
       </div>
+
+      {!tieneEnterprise && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8 rounded-xl border-2 border-accent/30 bg-gradient-to-br from-accent/10 to-accent/5 p-6 shadow-card"
+        >
+          <div className="flex items-start gap-4">
+            <div className="rounded-full bg-accent/20 p-3">
+              <Crown className="h-6 w-6 text-accent" />
+            </div>
+            <div className="flex-1">
+              <h2 className="font-display text-lg font-bold text-foreground flex items-center gap-2">
+                <Lock className="h-4 w-4" /> Plan Enterprise requerido
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Tu cuenta empresa está en plan <strong>{planEmpresa}</strong>. Para publicar ofertas,
+                ver candidatos compatibles y acceder al pool de talento necesitas activar el plan{" "}
+                <strong>Enterprise</strong>.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <Link to="/precios">
+                  <Button className="bg-accent text-accent-foreground hover:bg-accent/90 gap-2">
+                    <Crown className="h-4 w-4" /> Ver plan Enterprise
+                  </Button>
+                </Link>
+                <Link to="/precios">
+                  <Button variant="outline">Comparar planes</Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       <div className="mb-8 grid gap-4 sm:grid-cols-3">
         {stats.map((s, i) => (

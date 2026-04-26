@@ -213,12 +213,17 @@ export default function Register() {
             </div>
 
             {userType === "empresa" && (
-              <div>
-                <Label htmlFor="empresaNombre">Nombre de la empresa</Label>
-                <div className="relative mt-1.5">
-                  <Building2 className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input id="empresaNombre" placeholder="Mi Empresa SpA" className="pl-10" value={empresaNombre} onChange={(e) => setEmpresaNombre(e.target.value)} />
+              <div className="space-y-2">
+                <div>
+                  <Label htmlFor="empresaNombre">Nombre de la empresa *</Label>
+                  <div className="relative mt-1.5">
+                    <Building2 className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input id="empresaNombre" placeholder="Mi Empresa SpA" className="pl-10" value={empresaNombre} onChange={(e) => setEmpresaNombre(e.target.value)} required />
+                  </div>
                 </div>
+                <p className="text-xs text-muted-foreground rounded-md border border-accent/20 bg-accent/5 p-2">
+                  Tu cuenta empresa se crea en plan gratis. Para publicar ofertas y ver candidatos compatibles necesitas el plan <strong>Enterprise</strong>, que podrás contratar después de iniciar sesión.
+                </p>
               </div>
             )}
 

@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Building2, Briefcase, Users, TrendingUp, Plus, Mail, Eye } from "lucide-react";
+import { Building2, Briefcase, Users, TrendingUp, Plus, Mail, Eye, Lock, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 interface Oferta {
   id: string;

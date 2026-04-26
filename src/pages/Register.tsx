@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { BarChart3, Mail, Lock, User, Building2, ShieldCheck } from "lucide-react";
+import { BarChart3, Mail, Lock, User, Building2, ShieldCheck, Sparkles, Crown, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +18,9 @@ const SECURITY_QUESTIONS = [
   "¿Cuál es el nombre de tu escuela primaria?",
 ];
 
+type PlanCandidato = "gratis" | "premium" | "elite";
+type PlanEmpresa = "gratis" | "enterprise";
+
 export default function Register() {
   const navigate = useNavigate();
   const [name, setName] = useState("");
@@ -26,6 +29,8 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [userType, setUserType] = useState<"candidato" | "empresa">("candidato");
   const [empresaNombre, setEmpresaNombre] = useState("");
+  const [planCandidato, setPlanCandidato] = useState<PlanCandidato>("gratis");
+  const [planEmpresa, setPlanEmpresa] = useState<PlanEmpresa>("gratis");
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [acceptPrivacy, setAcceptPrivacy] = useState(false);
   const [acceptPool, setAcceptPool] = useState(false);

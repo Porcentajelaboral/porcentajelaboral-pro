@@ -9,7 +9,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 interface Oferta {
   id: string;
-  titulo: number | null;
+  titulo: string | null;
   descripcion: string | null;
   fecha_publicacion: string | null;
   activa: boolean | null;

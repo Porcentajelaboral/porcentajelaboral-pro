@@ -151,12 +151,6 @@ No incluyas markdown, backticks ni texto adicional. Solo el JSON.`;
         .join("\n");
     }
 
-    // Save to database using service role
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
     const insertData: any = {
       user_id: user.id,
       cv_texto: cvText,
@@ -172,7 +166,6 @@ No incluyas markdown, backticks ni texto adicional. Solo el JSON.`;
       plan_mejora_cv: planMejora,
     };
 
-    // Add job offer metadata if provided (from URL scraping)
     if (ofertaMeta) {
       insertData.oferta_url = ofertaMeta.url || null;
       insertData.oferta_titulo = ofertaMeta.titulo || null;
@@ -188,20 +181,10 @@ No incluyas markdown, backticks ni texto adicional. Solo el JSON.`;
 
     if (dbError) throw dbError;
 
-    // Update usage count
+    // Increment analisis_usados (atomic enough — we already validated limit above)
     await supabaseAdmin.from("Perfiles").update({
-      analisis_usados: supabase.rpc ? undefined : undefined,
-    }).eq("user_id", user.id);
-
-    // Increment analisis_usados
-    const { data: profile } = await supabaseAdmin
-      .from("Perfiles")
-      .select("analisis_usados")
-      .eq("user_id", user.id)
-      .single();
-
-    await supabaseAdmin.from("Perfiles").update({
-      analisis_usados: (profile?.analisis_usados || 0) + 1,
+      analisis_usados: usados + 1,
+      mes_control: currentMonth,
     }).eq("user_id", user.id);
 
     return new Response(JSON.stringify({ id: data.id }), {

@@ -106,7 +106,7 @@ export type Database = {
           empresa_contacto?: boolean | null
           fecha_match?: string | null
           id?: string
-          oferta_id?: string
+          oferta_id: string
           porcentaje_match?: number | null
           resumen_ia?: string | null
         }
@@ -138,7 +138,7 @@ export type Database = {
           fecha_publicacion: string | null
           id: string
           requisitos: string | null
-          titulo: number | null
+          titulo: string | null
           total_candidatos: number | null
         }
         Insert: {
@@ -148,7 +148,7 @@ export type Database = {
           fecha_publicacion?: string | null
           id?: string
           requisitos?: string | null
-          titulo?: number | null
+          titulo?: string | null
           total_candidatos?: number | null
         }
         Update: {
@@ -158,7 +158,7 @@ export type Database = {
           fecha_publicacion?: string | null
           id?: string
           requisitos?: string | null
-          titulo?: number | null
+          titulo?: string | null
           total_candidatos?: number | null
         }
         Relationships: []

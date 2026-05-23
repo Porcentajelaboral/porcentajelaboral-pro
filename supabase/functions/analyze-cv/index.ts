@@ -38,10 +38,45 @@ serve(async (req) => {
       });
     }
 
-    const { cvText, jobText, plan, ofertaMeta } = await req.json();
+    const { cvText, jobText, ofertaMeta } = await req.json();
     if (!cvText || !jobText) {
       return new Response(JSON.stringify({ error: "CV and job description are required" }), {
         status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // SECURITY: derive plan + usage server-side (never trust client)
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    const PLAN_LIMITS: Record<string, number> = { gratis: 5, premium: 20, elite: 999999, enterprise: 999999 };
+    const currentMonth = new Date().getMonth() + 1;
+
+    const { data: perfil } = await supabaseAdmin
+      .from("Perfiles")
+      .select("plan_tipo, analisis_usados, mes_control")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    const plan = (perfil?.plan_tipo || "gratis").toLowerCase();
+    let usados = perfil?.analisis_usados || 0;
+
+    // Monthly reset
+    if ((perfil?.mes_control || 0) !== currentMonth) {
+      usados = 0;
+      await supabaseAdmin.from("Perfiles").update({
+        analisis_usados: 0,
+        mes_control: currentMonth,
+      }).eq("user_id", user.id);
+    }
+
+    const limit = PLAN_LIMITS[plan] ?? 5;
+    if (usados >= limit) {
+      return new Response(JSON.stringify({ error: "Has alcanzado tu límite mensual. Actualiza tu plan." }), {
+        status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -116,12 +151,6 @@ No incluyas markdown, backticks ni texto adicional. Solo el JSON.`;
         .join("\n");
     }
 
-    // Save to database using service role
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
     const insertData: any = {
       user_id: user.id,
       cv_texto: cvText,
@@ -137,7 +166,6 @@ No incluyas markdown, backticks ni texto adicional. Solo el JSON.`;
       plan_mejora_cv: planMejora,
     };
 
-    // Add job offer metadata if provided (from URL scraping)
     if (ofertaMeta) {
       insertData.oferta_url = ofertaMeta.url || null;
       insertData.oferta_titulo = ofertaMeta.titulo || null;
@@ -153,20 +181,10 @@ No incluyas markdown, backticks ni texto adicional. Solo el JSON.`;
 
     if (dbError) throw dbError;
 
-    // Update usage count
+    // Increment analisis_usados (atomic enough — we already validated limit above)
     await supabaseAdmin.from("Perfiles").update({
-      analisis_usados: supabase.rpc ? undefined : undefined,
-    }).eq("user_id", user.id);
-
-    // Increment analisis_usados
-    const { data: profile } = await supabaseAdmin
-      .from("Perfiles")
-      .select("analisis_usados")
-      .eq("user_id", user.id)
-      .single();
-
-    await supabaseAdmin.from("Perfiles").update({
-      analisis_usados: (profile?.analisis_usados || 0) + 1,
+      analisis_usados: usados + 1,
+      mes_control: currentMonth,
     }).eq("user_id", user.id);
 
     return new Response(JSON.stringify({ id: data.id }), {
